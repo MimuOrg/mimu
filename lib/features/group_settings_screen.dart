@@ -1,0 +1,606 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:mimu/shared/glass_widgets.dart';
+import 'package:mimu/shared/animated_widgets.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:mimu/data/chat_store.dart';
+import 'package:mimu/data/models/chat_models.dart';
+import 'package:mimu/data/settings_service.dart';
+import 'package:mimu/app/theme.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+class GroupSettingsScreen extends StatefulWidget {
+  final String chatId;
+  const GroupSettingsScreen({super.key, required this.chatId});
+
+  @override
+  State<GroupSettingsScreen> createState() => _GroupSettingsScreenState();
+}
+
+class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _isPinned = false;
+  bool _isMuted = false;
+  bool _onlyAdminsCanPost = false;
+  bool _onlyAdminsCanAddMembers = false;
+  String _groupDescription = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    setState(() {
+      _isMuted = SettingsService.isChatMuted(widget.chatId);
+      _isPinned = SettingsService.isChatPinned(widget.chatId);
+      _notificationsEnabled = !_isMuted;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ChatStore>(
+      builder: (context, chatStore, _) {
+        final chat = chatStore.threadById(widget.chatId);
+        if (chat == null) {
+          return Scaffold(
+            appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+            body: const Center(child: Text('Группа не найдена')),
+          );
+        }
+
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(PhosphorIconsBold.caretLeft),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: Text('Настройки группы'),
+            centerTitle: true,
+            flexibleSpace: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+          body: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/images/background_pattern.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SafeArea(
+              child: ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  AnimateOnDisplay(
+                    child: Center(
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundImage: chat.avatarAsset.startsWith('assets/')
+                                ? AssetImage(chat.avatarAsset)
+                                : const AssetImage('assets/images/avatar_placeholder.png'),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            chat.title,
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '${chat.participantIds.length} участников',
+                            style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.6)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  AnimateOnDisplay(
+                    delayMs: 100,
+                    child: Text('Уведомления', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                  AnimateOnDisplay(
+                    delayMs: 150,
+                    child: GlassContainer(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.bell, color: Theme.of(context).primaryColor),
+                            title: const Text('Уведомления'),
+                            subtitle: Text(_notificationsEnabled ? 'Включены' : 'Отключены', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Switch(
+                              value: _notificationsEnabled,
+                              onChanged: (value) async {
+                                setState(() => _notificationsEnabled = value);
+                                await SettingsService.setChatMuted(widget.chatId, !value);
+                              },
+                            ),
+                          ),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.bellSlash, color: Theme.of(context).primaryColor),
+                            title: const Text('Отключить звук'),
+                            subtitle: Text(_isMuted ? 'Включено' : 'Выключено', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Switch(
+                              value: _isMuted,
+                              onChanged: (value) async {
+                                setState(() => _isMuted = value);
+                                await SettingsService.setChatMuted(widget.chatId, value);
+                              },
+                            ),
+                          ),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.pushPin, color: Theme.of(context).primaryColor),
+                            title: const Text('Закрепить чат'),
+                            subtitle: Text(_isPinned ? 'Закреплен' : 'Не закреплен', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Switch(
+                              value: _isPinned,
+                              onChanged: (value) async {
+                                setState(() => _isPinned = value);
+                                await SettingsService.setChatPinned(widget.chatId, value);
+                                chatStore.notifyListeners();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AnimateOnDisplay(
+                    delayMs: 200,
+                    child: Text('Права администратора', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                  AnimateOnDisplay(
+                    delayMs: 250,
+                    child: GlassContainer(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.userCircle, color: Theme.of(context).primaryColor),
+                            title: const Text('Только администраторы могут публиковать'),
+                            subtitle: Text(_onlyAdminsCanPost ? 'Включено' : 'Выключено', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Switch(
+                              value: _onlyAdminsCanPost,
+                              onChanged: (value) => setState(() => _onlyAdminsCanPost = value),
+                            ),
+                          ),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.userPlus, color: Theme.of(context).primaryColor),
+                            title: const Text('Только администраторы могут добавлять участников'),
+                            subtitle: Text(_onlyAdminsCanAddMembers ? 'Включено' : 'Выключено', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Switch(
+                              value: _onlyAdminsCanAddMembers,
+                              onChanged: (value) => setState(() => _onlyAdminsCanAddMembers = value),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AnimateOnDisplay(
+                    delayMs: 300,
+                    child: Text('Участники', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                  AnimateOnDisplay(
+                    delayMs: 350,
+                    child: GlassContainer(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.users, color: Theme.of(context).primaryColor),
+                            title: const Text('Участники'),
+                            subtitle: Text('${chat.participantIds.length} человек', 
+                                style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                            onTap: () => _showParticipants(context, chatStore, chat),
+                          ),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+                          ListTile(
+                            leading: Icon(PhosphorIconsBold.userPlus, color: Theme.of(context).primaryColor),
+                            title: const Text('Добавить участника'),
+                            trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                            onTap: () => _showAddParticipant(context, chatStore, chat),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AnimateOnDisplay(
+                    delayMs: 400,
+                    child: Text('О группе', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 12),
+                  AnimateOnDisplay(
+                    delayMs: 450,
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _groupDescription.isEmpty ? 'Нет описания' : _groupDescription,
+                            style: TextStyle(
+                              color: _groupDescription.isEmpty 
+                                  ? Colors.white.withOpacity(0.5) 
+                                  : Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              final controller = TextEditingController(text: _groupDescription);
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.black.withOpacity(0.5),
+                                builder: (context) => TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0.0, end: 1.0),
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, value, child) {
+                                    return Transform.scale(
+                                      scale: 0.9 + (value * 0.1),
+                                      child: Opacity(
+                                        opacity: value,
+                                        child: Dialog(
+                                          backgroundColor: Colors.transparent,
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(20),
+                                            child: BackdropFilter(
+                                              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                              child: GlassContainer(
+                                                padding: const EdgeInsets.all(24),
+                                                decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
+                                                  color: Theme.of(context).primaryColor.withOpacity(0.12),
+                                                  borderRadius: BorderRadius.circular(20),
+                                                ),
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    const Text('Описание группы', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                                    const SizedBox(height: 20),
+                                                    TextField(
+                                                      controller: controller,
+                                                      style: const TextStyle(color: Colors.white),
+                                                      maxLines: 3,
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Введите описание',
+                                                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                                                        filled: true,
+                                                        fillColor: Colors.white.withOpacity(0.08),
+                                                        border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 20),
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.end,
+                                                      children: [
+                                                        TextButton(
+                                                          onPressed: () => Navigator.of(context).pop(),
+                                                          child: const Text('Отмена'),
+                                                        ),
+                                                        const SizedBox(width: 8),
+                                                        GlassButton(
+                                                          onPressed: () {
+                                                            setState(() => _groupDescription = controller.text.trim());
+                                                            Navigator.of(context).pop();
+                                                          },
+                                                          child: const Padding(
+                                                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                            child: Text('Сохранить'),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                            icon: Icon(PhosphorIconsBold.pencilSimple, size: 18, color: Theme.of(context).primaryColor),
+                            label: Text(_groupDescription.isEmpty ? 'Добавить описание' : 'Изменить описание'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  AnimateOnDisplay(
+                    delayMs: 500,
+                    child: GlassButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          barrierColor: Colors.black.withOpacity(0.5),
+                          builder: (context) => TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return Transform.scale(
+                                scale: 0.9 + (value * 0.1),
+                                child: Opacity(
+                                  opacity: value,
+                                  child: Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                                        child: GlassContainer(
+                                          padding: const EdgeInsets.all(24),
+                                          decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
+                                            color: Colors.red.withOpacity(0.15),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(PhosphorIconsBold.warning, color: Colors.redAccent, size: 48),
+                                              const SizedBox(height: 16),
+                                              const Text('Покинуть группу', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                              const SizedBox(height: 8),
+                                              const Text('Вы уверены, что хотите покинуть эту группу?', textAlign: TextAlign.center),
+                                              const SizedBox(height: 24),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.end,
+                                                children: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(),
+                                                    child: const Text('Отмена'),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  GlassButton(
+                                                    onPressed: () async {
+                                                      // Удаляем текущего пользователя из участников
+                                                      final updatedParticipants = List<String>.from(chat.participantIds);
+                                                      updatedParticipants.removeWhere((id) => id == 'me');
+                                                      
+                                                      final updatedChat = chat.copyWith(participantIds: updatedParticipants);
+                                                      final index = chatStore.threads.indexWhere((t) => t.id == chat.id);
+                                                      if (index != -1) {
+                                                        chatStore.threads[index] = updatedChat;
+                                                        await chatStore.persistThreads();
+                                                        chatStore.notifyListeners();
+                                                      }
+                                                      
+                                                      Navigator.of(context).pop();
+                                                      Navigator.of(context).pop();
+                                                      if (context.mounted) {
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          const SnackBar(content: Text('Вы покинули группу')),
+                                                        );
+                                                      }
+                                                    },
+                                                    child: const Padding(
+                                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                      child: Text('Покинуть', style: TextStyle(color: Colors.redAccent)),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(PhosphorIconsBold.signOut, color: Colors.redAccent, size: 20),
+                          SizedBox(width: 8),
+                          Text('Покинуть группу', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showParticipants(BuildContext context, ChatStore chatStore, ChatThread chat) {
+    showGlassBottomSheet(
+      context: context,
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text('Участники', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('${chat.participantIds.length}', 
+                      style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(PhosphorIconsBold.x),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.builder(
+              itemCount: chat.participantIds.length,
+              itemBuilder: (context, index) {
+                final participantId = chat.participantIds[index];
+                final contact = chatStore.contacts.firstWhere(
+                  (c) => c.id == participantId,
+                  orElse: () => ChatContact(
+                    id: participantId,
+                    name: participantId,
+                    avatarAsset: 'assets/images/avatar_placeholder.png',
+                  ),
+                );
+                return AnimateOnDisplay(
+                  delayMs: 50 * index,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: AssetImage(contact.avatarAsset),
+                    ),
+                    title: Text(contact.name),
+                    subtitle: index == 0 
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(PhosphorIconsBold.crown, size: 14, color: Theme.of(context).primaryColor),
+                              const SizedBox(width: 4),
+                              const Text('Администратор'),
+                            ],
+                          )
+                        : null,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddParticipant(BuildContext context, ChatStore chatStore, ChatThread chat) {
+    final availableContacts = chatStore.contacts.where(
+      (c) => !chat.participantIds.contains(c.id),
+    ).toList();
+    
+    showGlassBottomSheet(
+      context: context,
+      initialChildSize: 0.6,
+      minChildSize: 0.3,
+      maxChildSize: 0.9,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text('Добавить участника', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(PhosphorIconsBold.x),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: availableContacts.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(PhosphorIconsBold.userPlus, size: 64, color: Colors.white.withOpacity(0.3)),
+                        const SizedBox(height: 16),
+                        Text('Нет доступных контактов', 
+                            style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: availableContacts.length,
+                    itemBuilder: (context, index) {
+                      final contact = availableContacts[index];
+                      return AnimateOnDisplay(
+                        delayMs: 50 * index,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: AssetImage(contact.avatarAsset),
+                          ),
+                          title: Text(contact.name),
+                          trailing: GlassButton(
+                            onPressed: () async {
+                              final updatedParticipants = List<String>.from(chat.participantIds)..add(contact.id);
+                              final updatedChat = chat.copyWith(participantIds: updatedParticipants);
+                              final threadIndex = chatStore.threads.indexWhere((t) => t.id == chat.id);
+                              if (threadIndex != -1) {
+                                chatStore.threads[threadIndex] = updatedChat;
+                                await chatStore.persistThreads();
+                                chatStore.notifyListeners();
+                              }
+                              Navigator.of(context).pop();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('${contact.name} добавлен в группу')),
+                                );
+                              }
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(PhosphorIconsBold.plus, 
+                                  color: Theme.of(context).primaryColor, size: 18),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
