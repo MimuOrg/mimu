@@ -1,0 +1,51 @@
+name: mimu
+description: A new Flutter project.
+publish_to: 'none' 
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  phosphor_flutter: ^2.0.1
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.5.0
+  provider: ^6.1.1
+  url_launcher: ^6.2.1
+  cupertino_icons: ^1.0.6
+  image_picker: ^1.1.2
+  file_picker: ^8.0.0+1
+  record: ^5.2.1
+  audioplayers: ^6.1.0
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.5
+  shared_preferences: ^2.2.2
+  webview_flutter: ^4.4.2
+  share_plus: ^7.2.1
+  liquid_glass_renderer: 0.2.0-dev.4
+
+dependency_overrides:
+  record_linux:
+    path: third_party/record_linux
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/fonts/
+    - assets/icons/ 
+
+  # fonts:
+  #   - family: Inter
+  #     fonts:
+  #       - asset: assets/fonts/Inter-Regular.ttf
+  #       - asset: assets/fonts/Inter-Bold.ttf
+  #         weight: 700
