@@ -325,6 +325,7 @@ class MimuTheme {
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: _primaryTextColor,
+          backgroundColor: Colors.transparent,
           minimumSize: const Size(40, 40),
           maximumSize: const Size(48, 48),
           padding: const EdgeInsets.all(8),
@@ -361,14 +362,18 @@ class MimuTheme {
 // --- Theme Provider ---
 class ThemeProvider extends ChangeNotifier {
   Color _accentColor = const Color(0xFF6B1FA8); // Darker purple
+  Color _originalAccentColor = const Color(0xFF8A2BE2); // Original color for comparison
   String _currentTheme = 'Mimu Classical';
   String? _backgroundImage;
   
   Color get accentColor => _accentColor;
+  Color get originalAccentColor => _originalAccentColor;
   String get currentTheme => _currentTheme;
   String? get backgroundImage => _backgroundImage;
 
   void changeAccentColor(Color color) {
+    // Store original color for comparison
+    _originalAccentColor = color;
     // Darken the color slightly
     _accentColor = Color.fromRGBO(
       (color.red * 0.85).round().clamp(0, 255),

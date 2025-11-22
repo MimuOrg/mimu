@@ -37,6 +37,21 @@ class _SettingsHubState extends State<SettingsHub> {
         children: [
           const AnimateOnDisplay(child: _ProfileHeader()),
           const SizedBox(height: 24),
+          // Mimu Premium - отдельная категория вверху
+          AnimateOnDisplay(
+            delayMs: 50,
+            child: _SettingsGroup(
+              title: "Premium",
+              items: [
+                _SettingsItem(
+                  icon: PhosphorIconsBold.rocketLaunch,
+                  title: "Mimu Premium",
+                  onTap: () => _openDetail(context, "Mimu Premium"),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           AnimateOnDisplay(
             delayMs: 100,
             child: _SettingsGroup(
@@ -110,11 +125,6 @@ class _SettingsHubState extends State<SettingsHub> {
               title: "Поддержка",
               items: [
                 _SettingsItem(
-                  icon: PhosphorIconsBold.rocketLaunch,
-                  title: "Mimu Premium",
-                  onTap: () => _openDetail(context, "Mimu Premium"),
-                ),
-                _SettingsItem(
                   icon: PhosphorIconsBold.question,
                   title: "Поддержка",
                   onTap: () => _openDetail(context, "Поддержка"),
@@ -142,6 +152,8 @@ class _SettingsHubState extends State<SettingsHub> {
               ],
             ),
           ),
+          // Добавляем отступ внизу, чтобы нижняя панель не перекрывала последний элемент
+          const SizedBox(height: 100),
         ],
       ),
     );
@@ -151,20 +163,23 @@ class _SettingsHubState extends State<SettingsHub> {
     // Анимация соскальзывания как в Telegram - плавное и быстрое
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => _SettingsDetailPage(title: title),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            _SettingsDetailPage(title: title),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOutCubic; // Плавная кривая как в Telegram
-          
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-          
+
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
           return SlideTransition(
             position: animation.drive(tween),
             child: child,
           );
         },
-        transitionDuration: const Duration(milliseconds: 280), // Быстрое как в Telegram
+        transitionDuration:
+            const Duration(milliseconds: 280), // Быстрое как в Telegram
       ),
     );
   }
@@ -209,7 +224,8 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                 title: const Text('Галерея'),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                  final XFile? file = await _picker.pickImage(
+                      source: ImageSource.gallery, imageQuality: 85);
                   if (file != null) {
                     await UserService.setAvatarPath(file.path);
                     setState(() => _avatarPath = file.path);
@@ -222,7 +238,8 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                 title: const Text('Камера'),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  final XFile? file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                  final XFile? file = await _picker.pickImage(
+                      source: ImageSource.camera, imageQuality: 85);
                   if (file != null) {
                     await UserService.setAvatarPath(file.path);
                     setState(() => _avatarPath = file.path);
@@ -240,7 +257,7 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
   Widget build(BuildContext context) {
     final displayName = UserService.getDisplayName();
     final username = UserService.getUsername();
-    
+
     return Column(
       children: [
         GestureDetector(
@@ -249,9 +266,11 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
             children: [
               CircleAvatar(
                 radius: 50,
-                backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                backgroundImage: _avatarPath != null &&
+                        File(_avatarPath!).existsSync()
                     ? FileImage(File(_avatarPath!))
-                    : const AssetImage("assets/images/avatar_placeholder.png") as ImageProvider,
+                    : const AssetImage("assets/images/avatar_placeholder.png")
+                        as ImageProvider,
               ),
               Positioned(
                 bottom: 0,
@@ -259,15 +278,21 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
                 child: CircleAvatar(
                   radius: 15,
                   backgroundColor: Theme.of(context).primaryColor,
-                  child: const Icon(PhosphorIconsBold.pencilSimple, size: 16, color: Colors.white),
+                  child: const Icon(PhosphorIconsBold.pencilSimple,
+                      size: 16, color: Colors.white),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        Text(displayName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-        Text("@$username", style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)), textAlign: TextAlign.center),
+        Text(displayName,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center),
+        Text("@$username",
+            style:
+                TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)),
+            textAlign: TextAlign.center),
       ],
     );
   }
@@ -325,7 +350,8 @@ class _SettingsDetailPage extends StatelessWidget {
         return _SupportSettings();
       default:
         return Center(
-          child: Text('Страница "$title" (заглушка)', style: const TextStyle(fontSize: 16)),
+          child: Text('Страница "$title" (заглушка)',
+              style: const TextStyle(fontSize: 16)),
         );
     }
   }
@@ -353,9 +379,17 @@ class _NotificationsSettingsState extends State<_NotificationsSettings> {
   Future<void> _loadSettings() async {
     final enabled = SettingsService.getNotificationsEnabled();
     final vibration = SettingsService.getVibrationEnabled();
+    final soundEnabled = SettingsService.getNotificationSoundEnabled();
+    final previewEnabled = SettingsService.getNotificationPreviewEnabled();
+    final inAppEnabled = SettingsService.getInAppNotificationsEnabled();
+    final soundName = SettingsService.getNotificationSoundName();
     setState(() {
       _notificationsEnabled = enabled;
       _vibrationEnabled = vibration;
+      _soundEnabled = soundEnabled;
+      _showPreview = previewEnabled;
+      _inAppNotifications = inAppEnabled;
+      _notificationSound = soundName;
     });
   }
 
@@ -366,7 +400,8 @@ class _NotificationsSettingsState extends State<_NotificationsSettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Уведомления', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Уведомления',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -385,11 +420,18 @@ class _NotificationsSettingsState extends State<_NotificationsSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Звук'),
-                  subtitle: Text(_soundEnabled ? 'Включен' : 'Выключен', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(_soundEnabled ? 'Включен' : 'Выключен',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _soundEnabled,
-                    onChanged: _notificationsEnabled ? (value) => setState(() => _soundEnabled = value) : null,
+                    onChanged: _notificationsEnabled
+                        ? (value) async {
+                            await SettingsService.setNotificationSoundEnabled(
+                                value);
+                            setState(() => _soundEnabled = value);
+                          }
+                        : null,
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
@@ -397,24 +439,33 @@ class _NotificationsSettingsState extends State<_NotificationsSettings> {
                   title: const Text('Вибрация'),
                   trailing: Switch(
                     value: _vibrationEnabled,
-                    onChanged: _notificationsEnabled ? (value) async {
-                      await SettingsService.setVibrationEnabled(value);
-                      setState(() => _vibrationEnabled = value);
-                      // Вибрация при включении
-                      if (value) {
-                        HapticFeedback.lightImpact();
-                      }
-                    } : null,
+                    onChanged: _notificationsEnabled
+                        ? (value) async {
+                            await SettingsService.setVibrationEnabled(value);
+                            setState(() => _vibrationEnabled = value);
+                            // Вибрация при включении
+                            if (value) {
+                              HapticFeedback.lightImpact();
+                            }
+                          }
+                        : null,
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Показывать превью'),
-                  subtitle: Text('Показывать текст сообщения в уведомлении', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Показывать текст сообщения в уведомлении',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _showPreview,
-                    onChanged: _notificationsEnabled ? (value) => setState(() => _showPreview = value) : null,
+                    onChanged: _notificationsEnabled
+                        ? (value) async {
+                            await SettingsService.setNotificationPreviewEnabled(
+                                value);
+                            setState(() => _showPreview = value);
+                          }
+                        : null,
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
@@ -422,29 +473,42 @@ class _NotificationsSettingsState extends State<_NotificationsSettings> {
                   title: const Text('Уведомления в приложении'),
                   trailing: Switch(
                     value: _inAppNotifications,
-                    onChanged: _notificationsEnabled ? (value) => setState(() => _inAppNotifications = value) : null,
+                    onChanged: _notificationsEnabled
+                        ? (value) async {
+                            await SettingsService.setInAppNotificationsEnabled(
+                                value);
+                            setState(() => _inAppNotifications = value);
+                          }
+                        : null,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text('Звук уведомлений', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Звук уведомлений',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
             child: Column(
-              children: ['Mimu', 'Ocean', 'Winter cold', 'Классический'].map((sound) {
+              children:
+                  ['Mimu', 'Ocean', 'Winter cold', 'Классический'].map((sound) {
                 final isSelected = _notificationSound == sound;
                 return Column(
                   children: [
                     ListTile(
                       title: Text(sound),
                       trailing: isSelected
-                          ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor)
+                          ? Icon(PhosphorIconsBold.check,
+                              color: Theme.of(context).primaryColor)
                           : null,
                       onTap: _notificationsEnabled && _soundEnabled
-                          ? () => setState(() => _notificationSound = sound)
+                          ? () async {
+                              await SettingsService.setNotificationSoundName(
+                                  sound);
+                              setState(() => _notificationSound = sound);
+                            }
                           : null,
                     ),
                     if (sound != 'Классический')
@@ -488,10 +552,43 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
 
   @override
   Widget build(BuildContext context) {
-    final themes = ['Mimu Classical', 'Winter Ocean', 'Melanholic', 'Dark Mode', 'Light Mode', 'Amoled Black', 'Ocean Blue', 'Sunset Orange', 'Forest Green', 'Lavender Purple'];
-    final fonts = ['Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Nunito', 'Raleway', 'Playfair Display', 'Merriweather', 'Source Sans Pro', 'Ubuntu'];
+    final themes = [
+      'Mimu Classical',
+      'Winter Ocean',
+      'Melanholic',
+      'Dark Mode',
+      'Light Mode',
+      'Amoled Black',
+      'Ocean Blue',
+      'Sunset Orange',
+      'Forest Green',
+      'Lavender Purple'
+    ];
+    final fonts = [
+      'Inter',
+      'Roboto',
+      'Open Sans',
+      'Lato',
+      'Montserrat',
+      'Poppins',
+      'Nunito',
+      'Raleway',
+      'Playfair Display',
+      'Merriweather',
+      'Source Sans Pro',
+      'Ubuntu'
+    ];
     final sizes = [12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24];
-    final styles = ['Regular', 'Light', 'Medium', 'SemiBold', 'Bold', 'ExtraBold', 'Italic', 'Bold Italic'];
+    final styles = [
+      'Regular',
+      'Light',
+      'Medium',
+      'SemiBold',
+      'Bold',
+      'ExtraBold',
+      'Italic',
+      'Bold Italic'
+    ];
     final accentColors = [
       const Color(0xFF8A2BE2), // BlueViolet
       const Color(0xFF00BCD4), // Cyan
@@ -516,17 +613,20 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Акцентный цвет:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Акцентный цвет:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 12,
             children: accentColors.map((color) {
               final themeProvider = Provider.of<ThemeProvider>(context);
-              final isSelected = themeProvider.accentColor.value == color.value;
+              final isSelected =
+                  themeProvider.originalAccentColor.value == color.value;
               return GestureDetector(
                 onTap: () => themeProvider.changeAccentColor(color),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
@@ -554,7 +654,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             }).toList(),
           ),
           const SizedBox(height: 24),
-          Text('Темы:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Темы:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           SizedBox(
             height: 120,
@@ -616,17 +717,21 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                        color: isSelected ? themeColor : Colors.white.withOpacity(0.2),
+                        color: isSelected
+                            ? themeColor
+                            : Colors.white.withOpacity(0.2),
                         width: isSelected ? 3 : 1,
                       ),
                       color: themeColor.withOpacity(0.1),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: themeColor.withOpacity(0.3),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ] : null,
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: themeColor.withOpacity(0.3),
+                                blurRadius: 12,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Stack(
                       children: [
@@ -650,13 +755,16 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               if (isSelected)
-                                Icon(Icons.check_circle, color: themeColor, size: 20),
+                                Icon(Icons.check_circle,
+                                    color: themeColor, size: 20),
                               const SizedBox(height: 4),
                               Text(
                                 theme,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                   color: Colors.white,
                                 ),
                               ),
@@ -671,14 +779,15 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Шрифт:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Шрифт:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: SizedBox(
               height: 150,
               child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 itemCount: fonts.length,
                 itemBuilder: (context, index) {
                   final font = fonts[index];
@@ -687,14 +796,22 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(15),
-                    onTap: () async {
-                      await SettingsService.setFont(font);
-                        Provider.of<FontProvider>(context, listen: false).setFont(font);
-                      setState(() => _selectedFont = font);
-                    },
+                      onTap: () async {
+                        await SettingsService.setFont(font);
+                        Provider.of<FontProvider>(context, listen: false)
+                            .setFont(font);
+                        setState(() => _selectedFont = font);
+                      },
                       child: ListTile(
-                        title: Text(font, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-                        trailing: isSelected ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor) : null,
+                        title: Text(font,
+                            style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal)),
+                        trailing: isSelected
+                            ? Icon(PhosphorIconsBold.check,
+                                color: Theme.of(context).primaryColor)
+                            : null,
                       ),
                     ),
                   );
@@ -703,14 +820,15 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Размер:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Размер:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: SizedBox(
               height: 150,
               child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 itemCount: sizes.length,
                 itemBuilder: (context, index) {
                   final size = sizes[index];
@@ -719,14 +837,22 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(15),
-                    onTap: () async {
-                      await SettingsService.setFontSize(size);
-                        Provider.of<FontProvider>(context, listen: false).setFontSize(size);
-                      setState(() => _fontSize = size);
-                    },
+                      onTap: () async {
+                        await SettingsService.setFontSize(size);
+                        Provider.of<FontProvider>(context, listen: false)
+                            .setFontSize(size);
+                        setState(() => _fontSize = size);
+                      },
                       child: ListTile(
-                        title: Text('$size', style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-                        trailing: isSelected ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor) : null,
+                        title: Text('$size',
+                            style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal)),
+                        trailing: isSelected
+                            ? Icon(PhosphorIconsBold.check,
+                                color: Theme.of(context).primaryColor)
+                            : null,
                       ),
                     ),
                   );
@@ -735,14 +861,15 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Стиль:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Стиль:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: SizedBox(
               height: 150,
               child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 itemCount: styles.length,
                 itemBuilder: (context, index) {
                   final style = styles[index];
@@ -751,14 +878,22 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                     color: Colors.transparent,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(15),
-                    onTap: () async {
-                      await SettingsService.setFontStyle(style);
-                        Provider.of<FontProvider>(context, listen: false).setFontStyle(style);
-                      setState(() => _selectedStyle = style);
-                    },
+                      onTap: () async {
+                        await SettingsService.setFontStyle(style);
+                        Provider.of<FontProvider>(context, listen: false)
+                            .setFontStyle(style);
+                        setState(() => _selectedStyle = style);
+                      },
                       child: ListTile(
-                        title: Text(style, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal)),
-                        trailing: isSelected ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor) : null,
+                        title: Text(style,
+                            style: TextStyle(
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal)),
+                        trailing: isSelected
+                            ? Icon(PhosphorIconsBold.check,
+                                color: Theme.of(context).primaryColor)
+                            : null,
                       ),
                     ),
                   );
@@ -767,7 +902,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Отображение чата', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Отображение чата',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -775,8 +911,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Компактный режим'),
-                  subtitle: Text('Уменьшает отступы между сообщениями', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Уменьшает отступы между сообщениями',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getCompactMode(),
                     onChanged: (value) async {
@@ -788,8 +925,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Показывать время'),
-                  subtitle: Text('Отображать время отправки сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Отображать время отправки сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getShowTimestamps(),
                     onChanged: (value) async {
@@ -801,8 +939,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Статусы прочтения'),
-                  subtitle: Text('Показывать галочки прочтения сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Показывать галочки прочтения сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getShowReadReceipts(),
                     onChanged: (value) async {
@@ -814,8 +953,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Онлайн статус'),
-                  subtitle: Text('Показывать когда пользователь онлайн', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Показывать когда пользователь онлайн',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getShowOnlineStatus(),
                     onChanged: (value) async {
@@ -828,7 +968,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Жесты и интерактивность', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Жесты и интерактивность',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -836,8 +977,10 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Свайп навигация'),
-                  subtitle: Text('Свайп влево-вправо для переключения между вкладками', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      'Свайп влево-вправо для переключения между вкладками',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getSwipeNavigation(),
                     onChanged: (value) async {
@@ -849,8 +992,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Свайп для ответа'),
-                  subtitle: Text('Свайп влево для быстрого ответа', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Свайп влево для быстрого ответа',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getSwipeToReply(),
                     onChanged: (value) async {
@@ -862,8 +1006,10 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Двойной тап для лайка'),
-                  subtitle: Text('Двойной тап по сообщению для добавления реакции', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      'Двойной тап по сообщению для добавления реакции',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getDoubleTapToLike(),
                     onChanged: (value) async {
@@ -875,8 +1021,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Анимации сообщений'),
-                  subtitle: Text('Плавные анимации при отправке сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Плавные анимации при отправке сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getMessageAnimations(),
                     onChanged: (value) async {
@@ -888,8 +1035,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Тактильная отдача'),
-                  subtitle: Text('Вибрация при взаимодействии', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Вибрация при взаимодействии',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getHapticFeedback(),
                     onChanged: (value) async {
@@ -902,7 +1050,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Медиа', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Медиа',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -910,8 +1059,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Автовоспроизведение'),
-                  subtitle: Text('Автоматически воспроизводить медиа', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Автоматически воспроизводить медиа',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getAutoPlayMedia(),
                     onChanged: (value) async {
@@ -923,8 +1073,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Сохранять в галерею'),
-                  subtitle: Text('Автоматически сохранять медиа в галерею', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Автоматически сохранять медиа в галерею',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getSaveMediaToGallery(),
                     onChanged: (value) async {
@@ -937,7 +1088,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Стиль сообщений', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Стиль сообщений',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -945,8 +1097,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Градиентные пузыри'),
-                  subtitle: Text('Использовать градиент для сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Использовать градиент для сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getGradientBubbles(),
                     onChanged: (value) async {
@@ -958,18 +1111,21 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Скругление углов'),
-                  subtitle: Text('Настройка скругления пузырей сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text('Настройка скругления пузырей сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    // TODO: Реализовать настройку скругления
+                    _showBubbleRadiusDialog(context);
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Тень сообщений'),
-                  subtitle: Text('Добавлять тень к пузырям сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Добавлять тень к пузырям сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getMessageShadow(),
                     onChanged: (value) async {
@@ -982,7 +1138,8 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Фон чата', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Фон чата',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -990,8 +1147,9 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Декоративные иконки'),
-                  subtitle: Text('Показывать декоративные иконки на фоне', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Показывать декоративные иконки на фоне',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getDecorativeIcons(),
                     onChanged: (value) async {
@@ -1003,18 +1161,21 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Прозрачность фона'),
-                  subtitle: Text('Настройка прозрачности фона чата', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text('Настройка прозрачности фона чата',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    // TODO: Реализовать настройку прозрачности
+                    _showBackgroundOpacityDialog(context);
                   },
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text('Оптимизация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Оптимизация',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1022,8 +1183,10 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
               children: [
                 ListTile(
                   title: const Text('Энергосбережение'),
-                  subtitle: Text('Снижает производительность для экономии батареи', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      'Снижает производительность для экономии батареи',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: SettingsService.getPowerSaving(),
                     onChanged: (value) async {
@@ -1035,8 +1198,10 @@ class _AppearanceSettingsState extends State<_AppearanceSettings> {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Отключить анимации'),
-                  subtitle: Text('Улучшает производительность на слабых устройствах', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      'Улучшает производительность на слабых устройствах',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: !SettingsService.getAnimationsEnabled(),
                     onChanged: (value) async {
@@ -1088,7 +1253,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Звук', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Звук',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           SizedBox(
             height: 120,
@@ -1110,7 +1276,9 @@ class _SoundSettingsState extends State<_SoundSettings> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isSelected ? Theme.of(context).primaryColor : Colors.white.withOpacity(0.2),
+                        color: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Colors.white.withOpacity(0.2),
                         width: isSelected ? 3 : 1,
                       ),
                       color: Colors.white.withOpacity(0.03),
@@ -1189,7 +1357,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
             ),
           ),
           const SizedBox(height: 32),
-          Text('Кастомные звуки', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Кастомные звуки',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           _buildCustomSoundField(
             context,
@@ -1198,7 +1367,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
             () async {
               // Placeholder for file picker
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Выберите звуковой файл (.mp3, .wav)')),
+                const SnackBar(
+                    content: Text('Выберите звуковой файл (.mp3, .wav)')),
               );
             },
           ),
@@ -1210,7 +1380,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
             () async {
               // Placeholder for file picker
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Выберите звуковой файл (.mp3, .wav)')),
+                const SnackBar(
+                    content: Text('Выберите звуковой файл (.mp3, .wav)')),
               );
             },
           ),
@@ -1222,7 +1393,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
             () async {
               // Placeholder for file picker
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Выберите звуковой файл (.mp3, .wav)')),
+                const SnackBar(
+                    content: Text('Выберите звуковой файл (.mp3, .wav)')),
               );
             },
           ),
@@ -1242,11 +1414,14 @@ class _SoundSettingsState extends State<_SoundSettings> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          Text(title,
+              style:
+                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(
             hint,
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
           ),
           const SizedBox(height: 12),
           GlassButton(
@@ -1254,7 +1429,8 @@ class _SoundSettingsState extends State<_SoundSettings> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(PhosphorIconsBold.upload, color: Theme.of(context).primaryColor, size: 20),
+                Icon(PhosphorIconsBold.upload,
+                    color: Theme.of(context).primaryColor, size: 20),
                 const SizedBox(width: 8),
                 const Text('Загрузить файл', style: TextStyle(fontSize: 14)),
               ],
@@ -1348,6 +1524,8 @@ class _ConnectionSettingsState extends State<_ConnectionSettings> {
   Future<void> _loadSettings() async {
     setState(() {
       _connection = SettingsService.getConnection();
+      _useProxy = SettingsService.getUseProxy();
+      _autoConnect = SettingsService.getAutoConnect();
     });
   }
 
@@ -1360,81 +1538,104 @@ class _ConnectionSettingsState extends State<_ConnectionSettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Тип подключения', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Тип подключения',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.plug, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.plug,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Текущее подключение'),
-                  subtitle: Text(_connection, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text(_connection,
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-              showDialog(
-                context: context,
-                barrierColor: Colors.black.withOpacity(0.5),
-                builder: (context) => TweenAnimationBuilder<double>(
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    return Transform.scale(
-                      scale: 0.9 + (value * 0.1),
-                      child: Opacity(
-                        opacity: value,
-                        child: Dialog(
-                          backgroundColor: Colors.transparent,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                              child: GlassContainer(
-                                padding: const EdgeInsets.all(24),
-                                decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-                                  color: Theme.of(context).primaryColor.withOpacity(0.12),
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black.withOpacity(0.5),
+                      builder: (context) => TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: 0.9 + (value * 0.1),
+                            child: Opacity(
+                              opacity: value,
+                              child: Dialog(
+                                backgroundColor: Colors.transparent,
+                                child: ClipRRect(
                                   borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text('Выберите подключение', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 20),
-                                    ...connections.map((conn) {
-                                      return ListTile(
-                                        title: Text(conn),
-                                        trailing: _connection == conn
-                                            ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor)
-                                            : null,
-                                        onTap: () async {
-                                          await SettingsService.setConnection(conn);
-                                          setState(() => _connection = conn);
-                                          Navigator.of(context).pop();
-                                        },
-                                      );
-                                    }).toList(),
-                                  ],
+                                  child: BackdropFilter(
+                                    filter:
+                                        ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                    child: GlassContainer(
+                                      padding: const EdgeInsets.all(24),
+                                      decoration: Theme.of(context)
+                                          .extension<GlassTheme>()!
+                                          .baseGlass
+                                          .copyWith(
+                                            color: Theme.of(context)
+                                                .primaryColor
+                                                .withOpacity(0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Text('Выберите подключение',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold)),
+                                          const SizedBox(height: 20),
+                                          ...connections.map((conn) {
+                                            return ListTile(
+                                              title: Text(conn),
+                                              trailing: _connection == conn
+                                                  ? Icon(
+                                                      PhosphorIconsBold.check,
+                                                      color: Theme.of(context)
+                                                          .primaryColor)
+                                                  : null,
+                                              onTap: () async {
+                                                await SettingsService
+                                                    .setConnection(conn);
+                                                setState(
+                                                    () => _connection = conn);
+                                                Navigator.of(context).pop();
+                                              },
+                                            );
+                                          }).toList(),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
                     );
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.plus, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.plus,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Добавить подключение'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Добавление нового подключения')),
+                      const SnackBar(
+                          content: Text('Добавление нового подключения')),
                     );
                   },
                 ),
@@ -1442,7 +1643,8 @@ class _ConnectionSettingsState extends State<_ConnectionSettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Настройки', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Настройки',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1450,21 +1652,29 @@ class _ConnectionSettingsState extends State<_ConnectionSettings> {
               children: [
                 ListTile(
                   title: const Text('Использовать прокси'),
-                  subtitle: Text('Подключение через прокси-сервер', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Подключение через прокси-сервер',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _useProxy,
-                    onChanged: (value) => setState(() => _useProxy = value),
+                    onChanged: (value) async {
+                      await SettingsService.setUseProxy(value);
+                      setState(() => _useProxy = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Автоподключение'),
-                  subtitle: Text('Автоматически подключаться при запуске', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Автоматически подключаться при запуске',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _autoConnect,
-                    onChanged: (value) => setState(() => _autoConnect = value),
+                    onChanged: (value) async {
+                      await SettingsService.setAutoConnect(value);
+                      setState(() => _autoConnect = value);
+                    },
                   ),
                 ),
               ],
@@ -1494,6 +1704,13 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
   bool _searchByUsername = true;
   bool _autoDeleteMessages = false;
   int _autoDeleteTime = 24;
+  bool _hideLastSeenTime = false;
+  bool _hideTypingStatus = false;
+  bool _screenshotProtection = false;
+  bool _hideForwarding = false;
+  bool _hideCopying = false;
+  bool _hidePhoneNumber = false;
+  bool _cloudSync = true;
 
   @override
   void initState() {
@@ -1503,9 +1720,25 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
 
   Future<void> _loadSettings() async {
     setState(() {
+      _lastSeenEnabled = SettingsService.getLastSeenEnabled();
+      _readReceiptsEnabled = SettingsService.getReadReceiptsEnabled();
+      _profilePhotoVisible = SettingsService.getProfilePhotoVisible();
+      _statusVisible = SettingsService.getStatusVisible();
+      _whoCanAddMe = SettingsService.getWhoCanAddMe();
+      _twoFactorEnabled = SettingsService.getTwoFactorEnabled();
+      _screenLockEnabled = SettingsService.getScreenLockEnabled();
+      _selfDestructMessages = SettingsService.getSelfDestructMessages();
+      _encryptionEnabled = SettingsService.getEncryptionEnabled();
       _searchByUsername = SettingsService.getSearchByUsername();
       _autoDeleteMessages = SettingsService.getAutoDeleteMessages();
       _autoDeleteTime = SettingsService.getAutoDeleteTime();
+      _hideLastSeenTime = SettingsService.getHideLastSeenTime();
+      _hideTypingStatus = SettingsService.getHideTypingStatus();
+      _screenshotProtection = SettingsService.getScreenshotProtection();
+      _hideForwarding = SettingsService.getHideForwarding();
+      _hideCopying = SettingsService.getHideCopying();
+      _hidePhoneNumber = SettingsService.getHidePhoneNumber();
+      _cloudSync = SettingsService.getCloudSync();
     });
   }
 
@@ -1516,7 +1749,8 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Видимость', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Видимость',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1524,44 +1758,63 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Последний раз в сети'),
-                  subtitle: Text(_lastSeenEnabled ? 'Все' : 'Никто', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  subtitle: Text(_lastSeenEnabled ? 'Все' : 'Никто',
+                      style: TextStyle(color: Colors.white.withOpacity(0.6))),
                   trailing: Switch(
                     value: _lastSeenEnabled,
-                    onChanged: (value) => setState(() => _lastSeenEnabled = value),
+                    onChanged: (value) async {
+                      await SettingsService.setLastSeenEnabled(value);
+                      setState(() => _lastSeenEnabled = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Чтение сообщений'),
-                  subtitle: Text(_readReceiptsEnabled ? 'Включено' : 'Выключено', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  subtitle: Text(
+                      _readReceiptsEnabled ? 'Включено' : 'Выключено',
+                      style: TextStyle(color: Colors.white.withOpacity(0.6))),
                   trailing: Switch(
                     value: _readReceiptsEnabled,
-                    onChanged: (value) => setState(() => _readReceiptsEnabled = value),
+                    onChanged: (value) async {
+                      await SettingsService.setReadReceiptsEnabled(value);
+                      setState(() => _readReceiptsEnabled = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Фото профиля'),
-                  subtitle: Text(_profilePhotoVisible ? 'Все' : 'Только контакты', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  subtitle: Text(
+                      _profilePhotoVisible ? 'Все' : 'Только контакты',
+                      style: TextStyle(color: Colors.white.withOpacity(0.6))),
                   trailing: Switch(
                     value: _profilePhotoVisible,
-                    onChanged: (value) => setState(() => _profilePhotoVisible = value),
+                    onChanged: (value) async {
+                      await SettingsService.setProfilePhotoVisible(value);
+                      setState(() => _profilePhotoVisible = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Статус'),
-                  subtitle: Text(_statusVisible ? 'Все' : 'Только контакты', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  subtitle: Text(_statusVisible ? 'Все' : 'Только контакты',
+                      style: TextStyle(color: Colors.white.withOpacity(0.6))),
                   trailing: Switch(
                     value: _statusVisible,
-                    onChanged: (value) => setState(() => _statusVisible = value),
+                    onChanged: (value) async {
+                      await SettingsService.setStatusVisible(value);
+                      setState(() => _statusVisible = value);
+                    },
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text('Кто может...', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Кто может...',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1569,8 +1822,10 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Добавлять меня в группы'),
-                  subtitle: Text(_whoCanAddMe, style: TextStyle(color: Colors.white.withOpacity(0.6))),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text(_whoCanAddMe,
+                      style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     showDialog(
                       context: context,
@@ -1589,26 +1844,43 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(20),
                                   child: BackdropFilter(
-                                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                                    filter:
+                                        ImageFilter.blur(sigmaX: 8, sigmaY: 8),
                                     child: GlassContainer(
                                       padding: const EdgeInsets.all(24),
-                                      decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-                                        color: Theme.of(context).primaryColor.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
+                                      decoration: Theme.of(context)
+                                          .extension<GlassTheme>()!
+                                          .baseGlass
+                                          .copyWith(
+                                            color: Theme.of(context)
+                                                .primaryColor
+                                                .withOpacity(0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                          ),
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Text('Кто может добавлять', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                                          const Text('Кто может добавлять',
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold)),
                                           const SizedBox(height: 20),
-                                          ...['Все', 'Только контакты', 'Никто'].map((option) {
+                                          ...['Все', 'Только контакты', 'Никто']
+                                              .map((option) {
                                             return ListTile(
                                               title: Text(option),
                                               trailing: _whoCanAddMe == option
-                                                  ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor)
+                                                  ? Icon(
+                                                      PhosphorIconsBold.check,
+                                                      color: Theme.of(context)
+                                                          .primaryColor)
                                                   : null,
-                                              onTap: () {
-                                                setState(() => _whoCanAddMe = option);
+                                              onTap: () async {
+                                                await SettingsService
+                                                    .setWhoCanAddMe(option);
+                                                setState(() =>
+                                                    _whoCanAddMe = option);
                                                 Navigator.of(context).pop();
                                               },
                                             );
@@ -1630,7 +1902,8 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Поиск и обнаружение', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Поиск и обнаружение',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1638,8 +1911,12 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Поиск по юзернейму'),
-                  subtitle: Text(_searchByUsername ? 'Другие могут найти вас по @username' : 'Вас нельзя найти по @username', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      _searchByUsername
+                          ? 'Другие могут найти вас по @username'
+                          : 'Вас нельзя найти по @username',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _searchByUsername,
                     onChanged: (value) async {
@@ -1652,7 +1929,8 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Безопасность', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Безопасность',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1660,48 +1938,82 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Двухфакторная аутентификация'),
-                  subtitle: Text(_twoFactorEnabled ? 'Включена' : 'Выключена', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(_twoFactorEnabled ? 'Включена' : 'Выключена',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _twoFactorEnabled,
-                    onChanged: (value) => setState(() => _twoFactorEnabled = value),
+                    onChanged: (value) async {
+                      await SettingsService.setTwoFactorEnabled(value);
+                      setState(() => _twoFactorEnabled = value);
+                      if (value) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Двухфакторная аутентификация включена')),
+                        );
+                      }
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Блокировка экрана'),
-                  subtitle: Text(_screenLockEnabled ? 'Включена' : 'Выключена', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(_screenLockEnabled ? 'Включена' : 'Выключена',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _screenLockEnabled,
-                    onChanged: (value) => setState(() => _screenLockEnabled = value),
+                    onChanged: (value) async {
+                      await SettingsService.setScreenLockEnabled(value);
+                      setState(() => _screenLockEnabled = value);
+                      if (value) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Блокировка экрана включена')),
+                        );
+                      }
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Шифрование сообщений'),
-                  subtitle: Text(_encryptionEnabled ? 'End-to-end шифрование активно' : 'Шифрование выключено', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      _encryptionEnabled
+                          ? 'End-to-end шифрование активно'
+                          : 'Шифрование выключено',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _encryptionEnabled,
-                    onChanged: (value) => setState(() => _encryptionEnabled = value),
+                    onChanged: (value) async {
+                      await SettingsService.setEncryptionEnabled(value);
+                      setState(() => _encryptionEnabled = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Самоуничтожающиеся сообщения'),
-                  subtitle: Text(_selfDestructMessages ? 'Включено' : 'Выключено', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      _selfDestructMessages ? 'Включено' : 'Выключено',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _selfDestructMessages,
-                    onChanged: (value) => setState(() => _selfDestructMessages = value),
+                    onChanged: (value) async {
+                      await SettingsService.setSelfDestructMessages(value);
+                      setState(() => _selfDestructMessages = value);
+                    },
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text('Автоудаление сообщений', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Автоудаление сообщений',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1709,10 +2021,12 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Включить автоудаление'),
-                  subtitle: Text(_autoDeleteMessages 
-                      ? 'Сообщения будут удаляться через $_autoDeleteTime ${_autoDeleteTime == 1 ? 'час' : _autoDeleteTime < 5 ? 'часа' : 'часов'}'
-                      : 'Сообщения не будут удаляться автоматически', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text(
+                      _autoDeleteMessages
+                          ? 'Сообщения будут удаляться через $_autoDeleteTime ${_autoDeleteTime == 1 ? 'час' : _autoDeleteTime < 5 ? 'часа' : 'часов'}'
+                          : 'Сообщения не будут удаляться автоматически',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
                     value: _autoDeleteMessages,
                     onChanged: (value) async {
@@ -1725,47 +2039,59 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
                   Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                   ListTile(
                     title: const Text('Время до удаления'),
-                    subtitle: Text('$_autoDeleteTime ${_autoDeleteTime == 1 ? 'час' : _autoDeleteTime < 5 ? 'часа' : 'часов'}', 
-                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                    trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                    subtitle: Text(
+                        '$_autoDeleteTime ${_autoDeleteTime == 1 ? 'час' : _autoDeleteTime < 5 ? 'часа' : 'часов'}',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                            fontSize: 12)),
+                    trailing: Icon(PhosphorIconsBold.caretRight,
+                        color: Colors.white.withOpacity(0.5)),
                     onTap: () {
-                      showDialog(
+                      _showAnimatedDialog(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          backgroundColor: Colors.black87,
-                          title: const Text('Время до удаления'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [1, 6, 12, 24, 48, 72, 168].map((hours) {
-                              final isSelected = _autoDeleteTime == hours;
-                              String label;
-                              if (hours == 1) {
-                                label = '1 час';
-                              } else if (hours < 24) {
-                                label = '$hours часов';
-                              } else if (hours == 24) {
-                                label = '1 день';
-                              } else if (hours == 48) {
-                                label = '2 дня';
-                              } else if (hours == 72) {
-                                label = '3 дня';
-                              } else {
-                                label = '${hours ~/ 24} дней';
-                              }
-                              return ListTile(
-                                title: Text(label),
-                                trailing: isSelected
-                                    ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor)
-                                    : null,
-                                onTap: () async {
-                                  await SettingsService.setAutoDeleteTime(hours);
-                                  setState(() => _autoDeleteTime = hours);
-                                  Navigator.of(context).pop();
-                                },
-                              );
-                            }).toList(),
-                          ),
+                        title: 'Время до удаления',
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [1, 6, 12, 24, 48, 72, 168].map((hours) {
+                            final isSelected = _autoDeleteTime == hours;
+                            String label;
+                            if (hours == 1) {
+                              label = '1 час';
+                            } else if (hours < 24) {
+                              label = '$hours часов';
+                            } else if (hours == 24) {
+                              label = '1 день';
+                            } else if (hours == 48) {
+                              label = '2 дня';
+                            } else if (hours == 72) {
+                              label = '3 дня';
+                            } else {
+                              label = '${hours ~/ 24} дней';
+                            }
+                            return ListTile(
+                              title: Text(label),
+                              trailing: isSelected
+                                  ? Icon(PhosphorIconsBold.check,
+                                      color: Theme.of(context).primaryColor)
+                                  : null,
+                              onTap: () async {
+                                await SettingsService.setAutoDeleteTime(hours);
+                                setState(() => _autoDeleteTime = hours);
+                                Navigator.of(context).pop();
+                              },
+                            );
+                          }).toList(),
                         ),
+                        actions: [
+                          GlassButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 10),
+                              child: Text('Отмена'),
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -1774,7 +2100,8 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Дополнительно', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Дополнительно',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1782,84 +2109,123 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Скрыть номер телефона'),
-                  subtitle: Text('Скрыть номер от других пользователей', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Скрыть номер от других пользователей',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _hidePhoneNumber,
+                    onChanged: (value) async {
+                      await SettingsService.setHidePhoneNumber(value);
+                      setState(() => _hidePhoneNumber = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Блокировка контактов'),
-                  subtitle: Text('Управление заблокированными контактами', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
-                  onTap: () {},
+                  subtitle: Text('Управление заблокированными контактами',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
+                  onTap: () {
+                    _showBlockedContacts(context);
+                  },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Активные сессии'),
-                  subtitle: Text('Управление активными устройствами', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
-                  onTap: () {},
+                  subtitle: Text('Управление активными устройствами',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
+                  onTap: () {
+                    _showActiveSessions(context);
+                  },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Скрыть время последнего посещения'),
-                  subtitle: Text('Скрыть время последнего посещения от всех', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Скрыть время последнего посещения от всех',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _hideLastSeenTime,
+                    onChanged: (value) async {
+                      await SettingsService.setHideLastSeenTime(value);
+                      setState(() => _hideLastSeenTime = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Скрыть статус "печатает"'),
-                  subtitle: Text('Не показывать когда вы печатаете', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Не показывать когда вы печатаете',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _hideTypingStatus,
+                    onChanged: (value) async {
+                      await SettingsService.setHideTypingStatus(value);
+                      setState(() => _hideTypingStatus = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Защита скриншотов'),
-                  subtitle: Text('Блокировать создание скриншотов', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Блокировать создание скриншотов',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _screenshotProtection,
+                    onChanged: (value) async {
+                      await SettingsService.setScreenshotProtection(value);
+                      setState(() => _screenshotProtection = value);
+                      if (value) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Защита скриншотов включена')),
+                        );
+                      }
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Скрыть пересылку сообщений'),
-                  subtitle: Text('Запретить пересылку ваших сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Запретить пересылку ваших сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _hideForwarding,
+                    onChanged: (value) async {
+                      await SettingsService.setHideForwarding(value);
+                      setState(() => _hideForwarding = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Скрыть копирование сообщений'),
-                  subtitle: Text('Запретить копирование ваших сообщений', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Запретить копирование ваших сообщений',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _hideCopying,
+                    onChanged: (value) async {
+                      await SettingsService.setHideCopying(value);
+                      setState(() => _hideCopying = value);
+                    },
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          Text('Данные и синхронизация', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Данные и синхронизация',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1867,28 +2233,41 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
               children: [
                 ListTile(
                   title: const Text('Синхронизация облака'),
-                  subtitle: Text('Синхронизировать данные с облаком', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Синхронизировать данные с облаком',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: true,
-                    onChanged: (value) {},
+                    value: _cloudSync,
+                    onChanged: (value) async {
+                      await SettingsService.setCloudSync(value);
+                      setState(() => _cloudSync = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Экспорт данных'),
-                  subtitle: Text('Экспортировать все данные аккаунта', 
-                      style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
-                  onTap: () {},
+                  subtitle: Text('Экспортировать все данные аккаунта',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
+                  onTap: () {
+                    _showExportDataDialog(context);
+                  },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Удалить все данные'),
-                  subtitle: Text('Полное удаление всех данных аккаунта', 
-                      style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.trash, color: Colors.redAccent, size: 20),
-                  onTap: () {},
+                  subtitle: Text('Полное удаление всех данных аккаунта',
+                      style: TextStyle(
+                          color: Colors.redAccent.withOpacity(0.8),
+                          fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.trash,
+                      color: Colors.redAccent, size: 20),
+                  onTap: () {
+                    _showDeleteAllDataDialog(context);
+                  },
                 ),
               ],
             ),
@@ -1906,7 +2285,20 @@ class _LanguageSettings extends StatefulWidget {
 
 class _LanguageSettingsState extends State<_LanguageSettings> {
   String _selectedLanguage = 'Русский';
-  final List<String> _languages = ['Русский', 'English', 'Deutsch', 'Français', 'Español', '中文'];
+  final List<String> _languages = [
+    'Русский',
+    'English',
+    'Deutsch',
+    'Français',
+    'Español',
+    '中文'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLanguage = SettingsService.getLanguage();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1915,7 +2307,8 @@ class _LanguageSettingsState extends State<_LanguageSettings> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Язык интерфейса', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Язык интерфейса',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -1927,9 +2320,13 @@ class _LanguageSettingsState extends State<_LanguageSettings> {
                     ListTile(
                       title: Text(lang),
                       trailing: isSelected
-                          ? Icon(PhosphorIconsBold.check, color: Theme.of(context).primaryColor)
+                          ? Icon(PhosphorIconsBold.check,
+                              color: Theme.of(context).primaryColor)
                           : null,
-                      onTap: () => setState(() => _selectedLanguage = lang),
+                      onTap: () async {
+                        await SettingsService.setLanguage(lang);
+                        setState(() => _selectedLanguage = lang);
+                      },
                     ),
                     if (lang != _languages.last)
                       Divider(height: 1, color: Colors.white.withOpacity(0.1)),
@@ -1944,7 +2341,20 @@ class _LanguageSettingsState extends State<_LanguageSettings> {
   }
 }
 
-class _BackupSettings extends StatelessWidget {
+class _BackupSettings extends StatefulWidget {
+  @override
+  State<_BackupSettings> createState() => _BackupSettingsState();
+}
+
+class _BackupSettingsState extends State<_BackupSettings> {
+  bool _autoBackup = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoBackup = SettingsService.getAutoBackupEnabled();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -1952,17 +2362,22 @@ class _BackupSettings extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Резервное копирование', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Резервное копирование',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.cloudArrowUp, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.cloudArrowUp,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Создать резервную копию'),
-                  subtitle: Text('Последнее: 2 дня назад', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text('Последнее: 2 дня назад',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Резервная копия создана')),
@@ -1971,16 +2386,19 @@ class _BackupSettings extends StatelessWidget {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.cloudArrowDown, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.cloudArrowDown,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Восстановить из копии'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
                         backgroundColor: Colors.black87,
                         title: const Text('Восстановление'),
-                        content: const Text('Выберите файл резервной копии для восстановления'),
+                        content: const Text(
+                            'Выберите файл резервной копии для восстановления'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(),
@@ -1990,7 +2408,8 @@ class _BackupSettings extends StatelessWidget {
                             onPressed: () {
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Данные восстановлены')),
+                                const SnackBar(
+                                    content: Text('Данные восстановлены')),
                               );
                             },
                             child: const Text('Восстановить'),
@@ -2002,12 +2421,18 @@ class _BackupSettings extends StatelessWidget {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.clock, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.clock,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Автоматическое копирование'),
-                  subtitle: Text('Каждые 7 дней', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Каждые 7 дней',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: true,
-                    onChanged: (value) {},
+                    value: _autoBackup,
+                    onChanged: (value) async {
+                      await SettingsService.setAutoBackupEnabled(value);
+                      setState(() => _autoBackup = value);
+                    },
                   ),
                 ),
               ],
@@ -2027,7 +2452,8 @@ class _StatisticsSettings extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Статистика', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Статистика',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: const EdgeInsets.all(16),
@@ -2056,9 +2482,11 @@ class _StatisticsSettings extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(PhosphorIconsBold.export, color: Theme.of(context).primaryColor, size: 20),
+                Icon(PhosphorIconsBold.export,
+                    color: Theme.of(context).primaryColor, size: 20),
                 const SizedBox(width: 8),
-                const Text('Экспортировать статистику', style: TextStyle(fontSize: 16)),
+                const Text('Экспортировать статистику',
+                    style: TextStyle(fontSize: 16)),
               ],
             ),
           ),
@@ -2069,10 +2497,11 @@ class _StatisticsSettings extends StatelessWidget {
 
   Widget _buildStatRow(String label, String value) {
     return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: TextStyle(color: Colors.white.withOpacity(0.7))),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(value,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       ],
     );
   }
@@ -2096,11 +2525,15 @@ class _AboutSettings extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: Theme.of(context).primaryColor.withOpacity(0.2),
                   ),
-                  child: Icon(PhosphorIconsBold.chatCircle, size: 40, color: Theme.of(context).primaryColor),
+                  child: Icon(PhosphorIconsBold.chatCircle,
+                      size: 40, color: Theme.of(context).primaryColor),
                 ),
                 const SizedBox(height: 16),
-                const Text('Mimu', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                Text('Версия 1.0.0', style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                const Text('Mimu',
+                    style:
+                        TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                Text('Версия 1.0.0',
+                    style: TextStyle(color: Colors.white.withOpacity(0.6))),
               ],
             ),
           ),
@@ -2111,7 +2544,8 @@ class _AboutSettings extends StatelessWidget {
               children: [
                 ListTile(
                   title: const Text('Лицензия'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     showDialog(
                       context: context,
@@ -2140,7 +2574,8 @@ class _AboutSettings extends StatelessWidget {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Политика конфиденциальности'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     showDialog(
                       context: context,
@@ -2171,7 +2606,8 @@ class _AboutSettings extends StatelessWidget {
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Условия использования'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     showDialog(
                       context: context,
@@ -2249,7 +2685,8 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                 title: const Text('Галерея'),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                  final XFile? file = await _picker.pickImage(
+                      source: ImageSource.gallery, imageQuality: 85);
                   if (file != null) {
                     await UserService.setAvatarPath(file.path);
                     setState(() => _avatarPath = file.path);
@@ -2262,7 +2699,8 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                 title: const Text('Камера'),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  final XFile? file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                  final XFile? file = await _picker.pickImage(
+                      source: ImageSource.camera, imageQuality: 85);
                   if (file != null) {
                     await UserService.setAvatarPath(file.path);
                     setState(() => _avatarPath = file.path);
@@ -2292,9 +2730,12 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                     children: [
                       CircleAvatar(
                         radius: 50,
-                        backgroundImage: _avatarPath != null && File(_avatarPath!).existsSync()
+                        backgroundImage: _avatarPath != null &&
+                                File(_avatarPath!).existsSync()
                             ? FileImage(File(_avatarPath!))
-                            : const AssetImage("assets/images/avatar_placeholder.png") as ImageProvider,
+                            : const AssetImage(
+                                    "assets/images/avatar_placeholder.png")
+                                as ImageProvider,
                       ),
                       Positioned(
                         bottom: 0,
@@ -2302,15 +2743,20 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                         child: CircleAvatar(
                           radius: 16,
                           backgroundColor: Theme.of(context).primaryColor,
-                          child: const Icon(PhosphorIconsBold.pencilSimple, size: 16, color: Colors.white),
+                          child: const Icon(PhosphorIconsBold.pencilSimple,
+                              size: 16, color: Colors.white),
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(_displayName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                Text("@$_username", style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6))),
+                Text(_displayName,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.bold)),
+                Text("@$_username",
+                    style: TextStyle(
+                        fontSize: 16, color: Colors.white.withOpacity(0.6))),
               ],
             ),
           ),
@@ -2320,11 +2766,14 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.user, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.user,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Изменить имя'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    final controller = TextEditingController(text: _displayName);
+                    final controller =
+                        TextEditingController(text: _displayName);
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -2345,8 +2794,10 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              await UserService.setDisplayName(controller.text.trim());
-                              setState(() => _displayName = controller.text.trim());
+                              await UserService.setDisplayName(
+                                  controller.text.trim());
+                              setState(
+                                  () => _displayName = controller.text.trim());
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Имя изменено')),
@@ -2361,10 +2812,14 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.at, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.at,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Изменить username'),
-                  subtitle: Text('@$_username', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  subtitle: Text('@$_username',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     final controller = TextEditingController(text: _username);
                     showDialog(
@@ -2388,11 +2843,15 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                           ),
                           TextButton(
                             onPressed: () async {
-                              await UserService.setUsername(controller.text.trim());
-                              setState(() => _username = controller.text.trim());
+                              await UserService.setUsername(
+                                  controller.text.trim());
+                              setState(
+                                  () => _username = controller.text.trim());
                               Navigator.of(context).pop();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Username изменен на @${controller.text.trim()}')),
+                                SnackBar(
+                                    content: Text(
+                                        'Username изменен на @${controller.text.trim()}')),
                               );
                             },
                             child: const Text('Сохранить'),
@@ -2404,9 +2863,11 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.lock, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.lock,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Изменить пароль'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     final oldPasswordController = TextEditingController();
                     final newPasswordController = TextEditingController();
@@ -2459,14 +2920,17 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
                           ),
                           TextButton(
                             onPressed: () {
-                              if (newPasswordController.text == confirmPasswordController.text) {
+                              if (newPasswordController.text ==
+                                  confirmPasswordController.text) {
                                 Navigator.of(context).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Пароль изменен')),
+                                  const SnackBar(
+                                      content: Text('Пароль изменен')),
                                 );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Пароли не совпадают')),
+                                  const SnackBar(
+                                      content: Text('Пароли не совпадают')),
                                 );
                               }
                             },
@@ -2486,7 +2950,23 @@ class _MyAccountSettingsState extends State<_MyAccountSettings> {
   }
 }
 
-class _DataAndStorageSettings extends StatelessWidget {
+class _DataAndStorageSettings extends StatefulWidget {
+  @override
+  State<_DataAndStorageSettings> createState() =>
+      _DataAndStorageSettingsState();
+}
+
+class _DataAndStorageSettingsState extends State<_DataAndStorageSettings> {
+  bool _autoCleanMedia = true;
+  bool _autoCleanCache = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _autoCleanMedia = SettingsService.getAutoCleanMedia();
+    _autoCleanCache = SettingsService.getAutoCleanCache();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -2494,7 +2974,8 @@ class _DataAndStorageSettings extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Использование памяти', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Использование памяти',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: const EdgeInsets.all(16),
@@ -2509,7 +2990,8 @@ class _DataAndStorageSettings extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Автоматическая очистка', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Автоматическая очистка',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
@@ -2517,18 +2999,26 @@ class _DataAndStorageSettings extends StatelessWidget {
               children: [
                 ListTile(
                   title: const Text('Очищать старые медиа'),
-                  subtitle: Text('Старше 3 месяцев', style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                  subtitle: Text('Старше 3 месяцев',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: true,
-                    onChanged: (value) {},
+                    value: _autoCleanMedia,
+                    onChanged: (value) async {
+                      await SettingsService.setAutoCleanMedia(value);
+                      setState(() => _autoCleanMedia = value);
+                    },
                   ),
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
                   title: const Text('Очищать кэш автоматически'),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (value) {},
+                    value: _autoCleanCache,
+                    onChanged: (value) async {
+                      await SettingsService.setAutoCleanCache(value);
+                      setState(() => _autoCleanCache = value);
+                    },
                   ),
                 ),
               ],
@@ -2537,36 +3027,50 @@ class _DataAndStorageSettings extends StatelessWidget {
           const SizedBox(height: 24),
           GlassButton(
             onPressed: () {
-              showDialog(
+              _showAnimatedDialog(
                 context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: Colors.black87,
-                  title: const Text('Очистить кэш?'),
-                  content: const Text('Это действие нельзя отменить'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Отмена'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Кэш очищен')),
-                        );
-                      },
-                      child: const Text('Очистить', style: TextStyle(color: Colors.redAccent)),
-                    ),
-                  ],
+                title: 'Очистить кэш?',
+                content: const Text(
+                  'Это действие нельзя отменить',
+                  style: TextStyle(color: Colors.white70),
                 ),
+                actions: [
+                  GlassButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Text('Отмена'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GlassButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Кэш очищен')),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      child: Text(
+                        'Очистить',
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(PhosphorIconsBold.trash, color: Colors.redAccent, size: 20),
+                Icon(PhosphorIconsBold.trash,
+                    color: Colors.redAccent, size: 20),
                 const SizedBox(width: 8),
-                const Text('Очистить кэш', style: TextStyle(color: Colors.redAccent, fontSize: 16)),
+                const Text('Очистить кэш',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 16)),
               ],
             ),
           ),
@@ -2575,13 +3079,14 @@ class _DataAndStorageSettings extends StatelessWidget {
     );
   }
 
-  Widget _buildStorageRow(BuildContext context, String label, String size, double progress) {
+  Widget _buildStorageRow(
+      BuildContext context, String label, String size, double progress) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+      children: [
+        Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+          children: [
             Text(label, style: TextStyle(color: Colors.white.withOpacity(0.7))),
             Text(size, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -2590,7 +3095,8 @@ class _DataAndStorageSettings extends StatelessWidget {
         LinearProgressIndicator(
           value: progress,
           backgroundColor: Colors.white.withOpacity(0.1),
-          valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
+          valueColor:
+              AlwaysStoppedAnimation<Color>(Theme.of(context).primaryColor),
         ),
       ],
     );
@@ -2601,69 +3107,246 @@ class _PremiumSettings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: ListView(
+      child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: Column(
-              children: [
-                Image.asset('assets/images/fox_premium.png', width: 120, height: 120),
-                const SizedBox(height: 16),
-                const Text('Mimu Premium', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('Расширенные возможности', style: TextStyle(color: Colors.white.withOpacity(0.6))),
-              ],
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Fox illustration
+            AnimateOnDisplay(
+              child: Image.asset(
+                'assets/images/fox_premium.png',
+                height: 200,
+                fit: BoxFit.contain,
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-          GlassContainer(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _buildPremiumFeature(context, 'Неограниченное облачное хранилище'),
-                Divider(height: 1, color: Colors.white.withOpacity(0.1)),
-                _buildPremiumFeature(context, 'Приоритетная поддержка'),
-                Divider(height: 1, color: Colors.white.withOpacity(0.1)),
-                _buildPremiumFeature(context, 'Расширенные настройки приватности'),
-                Divider(height: 1, color: Colors.white.withOpacity(0.1)),
-                _buildPremiumFeature(context, 'Эксклюзивные темы и стили'),
-                Divider(height: 1, color: Colors.white.withOpacity(0.1)),
-                _buildPremiumFeature(context, 'Удаление рекламы'),
-              ],
+            const SizedBox(height: 24),
+            // Title with checkmark
+            AnimateOnDisplay(
+              delayMs: 100,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Купите Mimu Premium',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      PhosphorIconsBold.check,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          GlassButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Переход к покупке Premium')),
-              );
-            },
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(PhosphorIconsBold.crown, color: Colors.amber, size: 20),
-                const SizedBox(width: 8),
-                const Text('Купить Premium', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
+            const SizedBox(height: 32),
+            // Three text blocks
+            AnimateOnDisplay(
+              delayMs: 200,
+              child: GlassContainer(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Мы знаем, что приватность - это неприкасаемое право каждого человека на земле, и всеми силами пытаемся бороться с активным ущемлением этого права',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.5,
+                      fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            AnimateOnDisplay(
+              delayMs: 300,
+              child: GlassContainer(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Видя активную борьбу с приватностью и свободой, мы создали Mimu - безопасный и защищенный мессенджер, а позже и экосистема с браузером Bloball.',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.5,
+                      fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            AnimateOnDisplay(
+              delayMs: 400,
+              child: GlassContainer(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Проект стал бесплатным. Без рекламы мы будем работать в убыток. Поддержите нас. Купите Mimu Premium',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      height: 1.5,
+                      fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Subscription plans
+            AnimateOnDisplay(
+              delayMs: 500,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Mimu Premium',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          GlassButton(
+                            onPressed: () => _showPremiumFeatures(context),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Text('Функции',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('499 рублей/мес',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(16),
+                      decoration: Theme.of(context)
+                          .extension<GlassTheme>()!
+                          .baseGlass
+                          .copyWith(
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .primaryColor
+                                  .withOpacity(0.5),
+                              width: 2,
+                            ),
+                          ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Mimu Ultra',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Популярен!',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).primaryColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          GlassButton(
+                            onPressed: () => _showPremiumFeatures(context),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: Text('Функции',
+                                  style: TextStyle(fontSize: 12)),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text('899 рублей/мес',
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+            // Bottom message
+            AnimateOnDisplay(
+              delayMs: 600,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Мы будем очень благодарны',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.favorite, color: Colors.pink, size: 20),
+                  const SizedBox(width: 4),
+                  Transform.translate(
+                    offset: const Offset(-8, 0),
+                    child: const Icon(Icons.favorite,
+                        color: Colors.pink, size: 20),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPremiumFeature(BuildContext context, String text) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+  void _showPremiumFeatures(BuildContext context) {
+    _showAnimatedDialog(
+      context: context,
+      title: 'Функции Premium',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(PhosphorIconsBold.checkCircle, color: Theme.of(context).primaryColor, size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
+          _buildFeatureItem(context, 'Неограниченное облачное хранилище'),
+          const SizedBox(height: 12),
+          _buildFeatureItem(context, 'Приоритетная поддержка'),
+          const SizedBox(height: 12),
+          _buildFeatureItem(context, 'Расширенные настройки приватности'),
+          const SizedBox(height: 12),
+          _buildFeatureItem(context, 'Эксклюзивные темы и стили'),
+          const SizedBox(height: 12),
+          _buildFeatureItem(context, 'Удаление рекламы'),
         ],
       ),
+      actions: [
+        GlassButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Center(child: Text('Понятно')),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeatureItem(BuildContext context, String text) {
+    return Row(
+      children: [
+        Icon(PhosphorIconsBold.checkCircle,
+            color: Theme.of(context).primaryColor, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Text(text,
+                style: TextStyle(color: Colors.white.withOpacity(0.9)))),
+      ],
     );
   }
 }
@@ -2693,16 +3376,19 @@ class _SupportSettings extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Помощь и поддержка', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Помощь и поддержка',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.chatCircle, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.chatCircle,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Написать в поддержку'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Открытие чата поддержки')),
@@ -2711,117 +3397,187 @@ class _SupportSettings extends StatelessWidget {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.book, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.book,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Часто задаваемые вопросы'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    showDialog(
+                    _showAnimatedDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: Colors.black87,
-                        title: const Text('FAQ'),
-                        content: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildFAQItem('Как изменить тему?', 'Перейдите в Настройки > Внешний вид > Темы'),
-                              const SizedBox(height: 12),
-                              _buildFAQItem('Как переслать сообщение?', 'Долгое нажатие на сообщение > Переслать'),
-                              const SizedBox(height: 12),
-                              _buildFAQItem('Как создать группу?', 'Нажмите + в чатах > Новая группа'),
-                              const SizedBox(height: 12),
-                              _buildFAQItem('Как включить уведомления?', 'Настройки > Уведомления'),
-                            ],
+                      title: 'Часто задаваемые вопросы',
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildFAQItem('Как изменить тему?',
+                                'Перейдите в Настройки > Внешний вид > Темы'),
+                            const SizedBox(height: 12),
+                            _buildFAQItem('Как переслать сообщение?',
+                                'Долгое нажатие на сообщение > Переслать'),
+                            const SizedBox(height: 12),
+                            _buildFAQItem('Как создать группу?',
+                                'Нажмите + в чатах > Новая группа'),
+                            const SizedBox(height: 12),
+                            _buildFAQItem('Как включить уведомления?',
+                                'Настройки > Уведомления'),
+                            const SizedBox(height: 12),
+                            _buildFAQItem('Как изменить акцентный цвет?',
+                                'Настройки > Внешний вид > Акцентный цвет'),
+                            const SizedBox(height: 12),
+                            _buildFAQItem('Как очистить кэш?',
+                                'Настройки > Данные и Память > Очистить кэш'),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        GlassButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Text('Закрыть'),
                           ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Закрыть'),
-                          ),
-                        ],
-                      ),
+                      ],
                     );
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.bug, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.bug,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Сообщить об ошибке'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     final controller = TextEditingController();
-                    showDialog(
+                    _showAnimatedDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: Colors.black87,
-                        title: const Text('Сообщить об ошибке'),
-                        content: TextField(
-                          controller: controller,
-                          style: const TextStyle(color: Colors.white),
-                          maxLines: 5,
-                          decoration: const InputDecoration(
-                            hintText: 'Опишите проблему...',
-                            hintStyle: TextStyle(color: Colors.white54),
+                      title: 'Сообщить об ошибке',
+                      content: TextField(
+                        controller: controller,
+                        style: const TextStyle(color: Colors.white),
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: 'Опишите проблему...',
+                          hintStyle:
+                              TextStyle(color: Colors.white.withOpacity(0.5)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).primaryColor),
                           ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Отмена'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Спасибо! Ваше сообщение отправлено')),
-                              );
-                            },
-                            child: const Text('Отправить'),
-                          ),
-                        ],
                       ),
+                      actions: [
+                        GlassButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Text('Отмена'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GlassButton(
+                          onPressed: () {
+                            if (controller.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Пожалуйста, опишите проблему')),
+                              );
+                              return;
+                            }
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Спасибо! Ваше сообщение отправлено')),
+                            );
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Text('Отправить'),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.lightbulb, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.lightbulb,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Предложить функцию'),
-                  trailing: Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.caretRight,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () {
                     final controller = TextEditingController();
-                    showDialog(
+                    _showAnimatedDialog(
                       context: context,
-                      builder: (context) => AlertDialog(
-                        backgroundColor: Colors.black87,
-                        title: const Text('Предложить функцию'),
-                        content: TextField(
-                          controller: controller,
-                          style: const TextStyle(color: Colors.white),
-                          maxLines: 5,
-                          decoration: const InputDecoration(
-                            hintText: 'Опишите вашу идею...',
-                            hintStyle: TextStyle(color: Colors.white54),
+                      title: 'Предложить функцию',
+                      content: TextField(
+                        controller: controller,
+                        style: const TextStyle(color: Colors.white),
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: 'Опишите вашу идею...',
+                          hintStyle:
+                              TextStyle(color: Colors.white.withOpacity(0.5)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.2)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).primaryColor),
                           ),
                         ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: const Text('Отмена'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Спасибо за предложение!')),
-                              );
-                            },
-                            child: const Text('Отправить'),
-                          ),
-                        ],
                       ),
+                      actions: [
+                        GlassButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Text('Отмена'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        GlassButton(
+                          onPressed: () {
+                            if (controller.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content:
+                                        Text('Пожалуйста, опишите вашу идею')),
+                              );
+                              return;
+                            }
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Спасибо за предложение!')),
+                            );
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                            child: Text('Отправить'),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -2829,24 +3585,29 @@ class _SupportSettings extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text('Полезные ссылки', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Полезные ссылки',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           GlassContainer(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.globe, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.globe,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Официальный сайт'),
-                  trailing: Icon(PhosphorIconsBold.arrowSquareOut, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.arrowSquareOut,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () async {
                     final uri = Uri.parse('https://mimu.app');
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(uri,
+                          mode: LaunchMode.externalApplication);
                     } else {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Не удалось открыть сайт')),
+                          const SnackBar(
+                              content: Text('Не удалось открыть сайт')),
                         );
                       }
                     }
@@ -2854,17 +3615,21 @@ class _SupportSettings extends StatelessWidget {
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.chatCircle, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.chatCircle,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Telegram канал'),
-                  trailing: Icon(PhosphorIconsBold.arrowSquareOut, color: Colors.white.withOpacity(0.5)),
+                  trailing: Icon(PhosphorIconsBold.arrowSquareOut,
+                      color: Colors.white.withOpacity(0.5)),
                   onTap: () async {
                     final uri = Uri.parse('https://t.me/mimu_channel');
                     if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      await launchUrl(uri,
+                          mode: LaunchMode.externalApplication);
                     } else {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Не удалось открыть Telegram')),
+                          const SnackBar(
+                              content: Text('Не удалось открыть Telegram')),
                         );
                       }
                     }
@@ -2891,7 +3656,10 @@ class _SettingsGroup extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
-          child: Text(title, style: TextStyle(color: Colors.white.withOpacity(0.7), fontWeight: FontWeight.bold)),
+          child: Text(title,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontWeight: FontWeight.bold)),
         ),
         GlassContainer(
           padding: EdgeInsets.zero,
@@ -2901,7 +3669,10 @@ class _SettingsGroup extends StatelessWidget {
                 children: [
                   items[index],
                   if (index != items.length - 1)
-                    Divider(height: 1, indent: 56, color: Colors.white.withOpacity(0.1)),
+                    Divider(
+                        height: 1,
+                        indent: 56,
+                        color: Colors.white.withOpacity(0.1)),
                 ],
               );
             }),
@@ -2917,7 +3688,8 @@ class _SettingsItem extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
 
-  const _SettingsItem({required this.icon, required this.title, required this.onTap});
+  const _SettingsItem(
+      {required this.icon, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -2936,15 +3708,508 @@ class _SettingsItem extends StatelessWidget {
                   color: Theme.of(context).primaryColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+                child:
+                    Icon(icon, color: Theme.of(context).primaryColor, size: 20),
               ),
               const SizedBox(width: 16),
-              Expanded(child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
-              Icon(PhosphorIconsBold.caretRight, color: Colors.white.withOpacity(0.5), size: 18),
+              Expanded(
+                  child: Text(title,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500))),
+              Icon(PhosphorIconsBold.caretRight,
+                  color: Colors.white.withOpacity(0.5), size: 18),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+// Helper function to build FAQ item for support settings
+Widget _buildFAQItem(String question, String answer) {
+  return Builder(
+    builder: (context) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(PhosphorIconsBold.question,
+                size: 16, color: Theme.of(context).primaryColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                question,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: Text(
+            answer,
+            style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 12,
+                height: 1.4),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Helper function for animated dialogs with fakeglass
+void _showAnimatedDialog({
+  required BuildContext context,
+  required String title,
+  required Widget content,
+  required List<Widget> actions,
+}) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withOpacity(0.5),
+    builder: (context) {
+      return TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: 0.9 + (value * 0.1),
+            child: Opacity(
+              opacity: value,
+              child: Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    child: GlassContainer(
+                      padding: const EdgeInsets.all(24),
+                      decoration: Theme.of(context)
+                          .extension<GlassTheme>()!
+                          .baseGlass
+                          .copyWith(
+                            color: Theme.of(context)
+                                .primaryColor
+                                .withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                          content,
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: actions,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+// Blocked contacts screen
+void _showBlockedContacts(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: GlassIconButton(
+            icon: PhosphorIconsBold.caretLeft,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('Заблокированные контакты'),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              GlassContainer(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(PhosphorIconsBold.userMinus,
+                        size: 48, color: Colors.white.withOpacity(0.5)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Нет заблокированных контактов',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Контакты, которых вы заблокируете, не смогут отправлять вам сообщения',
+                      style: TextStyle(
+                          color: Colors.white.withOpacity(0.5), fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// Active sessions screen
+void _showActiveSessions(BuildContext context) {
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: GlassIconButton(
+            icon: PhosphorIconsBold.caretLeft,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: const Text('Активные сессии'),
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              GlassContainer(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Icon(PhosphorIconsBold.deviceMobile,
+                          color: Theme.of(context).primaryColor),
+                      title: const Text('Это устройство'),
+                      subtitle: Text('Текущая сессия',
+                          style:
+                              TextStyle(color: Colors.white.withOpacity(0.6))),
+                      trailing: Icon(PhosphorIconsBold.check,
+                          color: Theme.of(context).primaryColor),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Завершить все другие сессии',
+                style: TextStyle(color: Colors.redAccent, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// Export data dialog
+void _showExportDataDialog(BuildContext context) {
+  _showAnimatedDialog(
+    context: context,
+    title: 'Экспорт данных',
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Все ваши данные будут экспортированы в JSON файл. Это может занять некоторое время.',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Будут экспортированы:',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text('• Сообщения',
+            style: TextStyle(color: Colors.white.withOpacity(0.7))),
+        Text('• Контакты',
+            style: TextStyle(color: Colors.white.withOpacity(0.7))),
+        Text('• Настройки',
+            style: TextStyle(color: Colors.white.withOpacity(0.7))),
+        Text('• Медиафайлы (ссылки)',
+            style: TextStyle(color: Colors.white.withOpacity(0.7))),
+      ],
+    ),
+    actions: [
+      GlassButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Отмена'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      GlassButton(
+        onPressed: () {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text(
+                    'Экспорт данных начат. Файл будет сохранен в загрузки.')),
+          );
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Экспортировать'),
+        ),
+      ),
+    ],
+  );
+}
+
+// Delete all data dialog
+void _showDeleteAllDataDialog(BuildContext context) {
+  _showAnimatedDialog(
+    context: context,
+    title: 'Удалить все данные?',
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Это действие нельзя отменить. Все ваши данные будут безвозвратно удалены:',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        const SizedBox(height: 16),
+        Text('• Все сообщения',
+            style: TextStyle(color: Colors.redAccent.withOpacity(0.8))),
+        Text('• Все контакты',
+            style: TextStyle(color: Colors.redAccent.withOpacity(0.8))),
+        Text('• Все настройки',
+            style: TextStyle(color: Colors.redAccent.withOpacity(0.8))),
+        Text('• Все медиафайлы',
+            style: TextStyle(color: Colors.redAccent.withOpacity(0.8))),
+        const SizedBox(height: 16),
+        Text(
+          'Вы уверены?',
+          style:
+              TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent),
+        ),
+      ],
+    ),
+    actions: [
+      GlassButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Отмена'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      GlassButton(
+        onPressed: () {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Все данные удалены'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text(
+            'Удалить',
+            style: TextStyle(color: Colors.redAccent),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+// Bubble radius dialog
+void _showBubbleRadiusDialog(BuildContext context) {
+  double currentRadius = SettingsService.getBubbleRadius();
+  _showAnimatedDialog(
+    context: context,
+    title: 'Скругление углов',
+    content: StatefulBuilder(
+      builder: (context, setState) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${currentRadius.toInt()}px',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Slider(
+            value: currentRadius,
+            min: 0,
+            max: 30,
+            divisions: 30,
+            label: '${currentRadius.toInt()}px',
+            onChanged: (value) {
+              setState(() => currentRadius = value);
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () {
+                  setState(() => currentRadius = 0);
+                },
+                child: const Text('0px'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentRadius = 8);
+                },
+                child: const Text('8px'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentRadius = 16);
+                },
+                child: const Text('16px'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentRadius = 30);
+                },
+                child: const Text('30px'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      GlassButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Отмена'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      GlassButton(
+        onPressed: () async {
+          await SettingsService.setBubbleRadius(currentRadius);
+          if (context.mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Скругление углов обновлено')),
+            );
+          }
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Применить'),
+        ),
+      ),
+    ],
+  );
+}
+
+// Background opacity dialog
+void _showBackgroundOpacityDialog(BuildContext context) {
+  double currentOpacity = SettingsService.getChatBackgroundOpacity();
+  _showAnimatedDialog(
+    context: context,
+    title: 'Прозрачность фона',
+    content: StatefulBuilder(
+      builder: (context, setState) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${(currentOpacity * 100).toInt()}%',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Slider(
+            value: currentOpacity,
+            min: 0.0,
+            max: 1.0,
+            divisions: 20,
+            label: '${(currentOpacity * 100).toInt()}%',
+            onChanged: (value) {
+              setState(() => currentOpacity = value);
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TextButton(
+                onPressed: () {
+                  setState(() => currentOpacity = 0.0);
+                },
+                child: const Text('0%'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentOpacity = 0.3);
+                },
+                child: const Text('30%'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentOpacity = 0.5);
+                },
+                child: const Text('50%'),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() => currentOpacity = 1.0);
+                },
+                child: const Text('100%'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      GlassButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Отмена'),
+        ),
+      ),
+      const SizedBox(width: 12),
+      GlassButton(
+        onPressed: () async {
+          await SettingsService.setChatBackgroundOpacity(currentOpacity);
+          if (context.mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Прозрачность фона обновлена')),
+            );
+          }
+        },
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Text('Применить'),
+        ),
+      ),
+    ],
+  );
 }

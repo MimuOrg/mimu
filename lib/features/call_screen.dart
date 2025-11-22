@@ -75,10 +75,11 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
                         onPressed: () => Navigator.of(context).pop(),
                         color: Colors.white,
                       ),
-                      IconButton(
-                        icon: const Icon(PhosphorIconsBold.dotsThreeVertical),
-                        onPressed: () {},
-                        color: Colors.white,
+                      GlassIconButton(
+                        icon: PhosphorIconsBold.dotsThreeVertical,
+                        onPressed: () {
+                          _showCallMenu(context);
+                        },
                       ),
                     ],
                   ),
@@ -150,7 +151,9 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
                         ),
                       _buildControlButton(
                         icon: PhosphorIconsBold.dotsThree,
-                        onPressed: () {},
+                        onPressed: () {
+                          _showCallMenu(context);
+                        },
                         color: Colors.white.withOpacity(0.2),
                       ),
                     ],
@@ -264,6 +267,50 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
       return FileImage(file);
     }
     return const AssetImage('assets/images/avatar_placeholder.png');
+  }
+
+  void _showCallMenu(BuildContext context) {
+    showGlassBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(PhosphorIconsBold.user, color: Theme.of(context).primaryColor),
+            title: const Text('Информация о контакте'),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Информация о контакте')),
+              );
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(PhosphorIconsBold.chatCircle, color: Theme.of(context).primaryColor),
+            title: const Text('Написать сообщение'),
+            onTap: () {
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Открытие чата')),
+              );
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(PhosphorIconsBold.phone, color: Theme.of(context).primaryColor),
+            title: const Text('Повторный звонок'),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Повторный звонок')),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 

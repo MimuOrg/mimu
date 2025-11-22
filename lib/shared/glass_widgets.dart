@@ -6,9 +6,10 @@ import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 // Helper function to convert BorderRadiusGeometry to LiquidShape
 LiquidShape _borderRadiusToLiquidShape(BorderRadiusGeometry? borderRadius) {
   // Try to cast to BorderRadius to get radius values
-  final border = borderRadius is BorderRadius ? borderRadius : BorderRadius.zero;
+  final border =
+      borderRadius is BorderRadius ? borderRadius : BorderRadius.zero;
   final radius = border.topLeft.x;
-  
+
   // If all corners have the same radius, use rounded rectangle
   // For zero radius, still use LiquidRoundedRectangle (works like rectangle)
   if (border.topLeft == border.topRight &&
@@ -16,7 +17,7 @@ LiquidShape _borderRadiusToLiquidShape(BorderRadiusGeometry? borderRadius) {
       border.topLeft == border.bottomRight) {
     return LiquidRoundedRectangle(borderRadius: radius);
   }
-  
+
   // For different radii or non-BorderRadius, use zero radius as fallback
   return const LiquidRoundedRectangle(borderRadius: 0);
 }
@@ -34,7 +35,8 @@ class GlassContainer extends StatelessWidget {
     this.decoration,
     this.padding,
     this.margin,
-    this.useFakeGlass = true, // Используем FakeGlass по умолчанию для производительности
+    this.useFakeGlass =
+        true, // Используем FakeGlass по умолчанию для производительности
   });
 
   @override
@@ -43,19 +45,17 @@ class GlassContainer extends StatelessWidget {
     final finalDecoration = decoration ?? glassTheme.baseGlass;
 
     final borderRadius = finalDecoration.borderRadius;
-    final borderRadiusTyped = borderRadius is BorderRadius ? borderRadius : BorderRadius.zero;
-    
+    final borderRadiusTyped =
+        borderRadius is BorderRadius ? borderRadius : BorderRadius.zero;
+
     Widget glassWidget = ClipRRect(
       borderRadius: borderRadiusTyped,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: padding ?? const EdgeInsets.all(16),
-          decoration: finalDecoration.copyWith(
-            color: finalDecoration.color ?? Colors.white.withOpacity(0.03),
-          ),
-          child: child,
+      child: Container(
+        padding: padding ?? const EdgeInsets.all(16),
+        decoration: finalDecoration.copyWith(
+          color: finalDecoration.color ?? Colors.white.withOpacity(0.03),
         ),
+        child: child,
       ),
     );
 
@@ -95,12 +95,43 @@ class GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      padding: padding ?? const EdgeInsets.all(8),
-      child: IconButton(
-        icon: Icon(icon, size: iconSize ?? 20, color: iconColor ?? Colors.white.withOpacity(0.9)),
-        onPressed: onPressed,
-        tooltip: tooltip,
+    final glassTheme = Theme.of(context).extension<GlassTheme>()!;
+    final borderRadius =
+        glassTheme.interactiveGlass.borderRadius as BorderRadius;
+
+    final glowColor = Theme.of(context).primaryColor.withOpacity(0.45);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: borderRadius,
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: FakeGlass(
+            shape: _borderRadiusToLiquidShape(borderRadius),
+            child: Container(
+              padding: padding ?? const EdgeInsets.all(8),
+              decoration: glassTheme.interactiveGlass.copyWith(
+                color: Colors.transparent,
+              ),
+              child: GlassGlow(
+                glowColor: glowColor,
+                child: IconButton(
+                  icon: Icon(icon,
+                      size: iconSize ?? 20,
+                      color: iconColor ?? Colors.white.withOpacity(0.9)),
+                  onPressed: onPressed,
+                  tooltip: tooltip,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: iconColor ?? Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -114,8 +145,8 @@ class GlassButton extends StatelessWidget {
   final double? minHeight;
 
   const GlassButton({
-    super.key, 
-    required this.onPressed, 
+    super.key,
+    required this.onPressed,
     required this.child,
     this.padding,
     this.minWidth,
@@ -126,8 +157,11 @@ class GlassButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final glassTheme = Theme.of(context).extension<GlassTheme>()!;
     final primaryColor = Theme.of(context).primaryColor;
-    final borderRadius = glassTheme.interactiveGlass.borderRadius as BorderRadius;
-    
+    final borderRadius =
+        glassTheme.interactiveGlass.borderRadius as BorderRadius;
+
+    final glowColor = primaryColor.withOpacity(0.5);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -145,25 +179,19 @@ class GlassButton extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: borderRadius,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: FakeGlass(
-                shape: _borderRadiusToLiquidShape(borderRadius),
+            child: FakeGlass(
+              shape: _borderRadiusToLiquidShape(borderRadius),
+              child: GlassGlow(
+                glowColor: glowColor,
                 child: Container(
-                  padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: padding ??
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: glassTheme.interactiveGlass.copyWith(
                     color: Colors.transparent,
                     border: Border.all(
                       color: Colors.white.withOpacity(0.03),
                       width: 0.5,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
                   ),
                   child: DefaultTextStyle(
                     style: TextStyle(
@@ -231,7 +259,13 @@ class _GlassDraggableSheet extends StatelessWidget {
         padding: const EdgeInsets.only(top: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.30), blurRadius: 33, spreadRadius: 0, offset: const Offset(0, 12))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.30),
+                blurRadius: 33,
+                spreadRadius: 0,
+                offset: const Offset(0, 12))
+          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),

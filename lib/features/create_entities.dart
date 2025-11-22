@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:mimu/app/routes.dart';
 import 'package:mimu/data/chat_store.dart';
+import 'package:mimu/data/settings_service.dart';
 import 'package:mimu/shared/animated_widgets.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 
@@ -31,8 +32,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(PhosphorIconsBold.caretLeft),
+        leading: GlassIconButton(
+          icon: PhosphorIconsBold.caretLeft,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text('Новая группа'),
@@ -48,6 +49,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       participantIds: _selectedUsers.toList(),
                       avatarAsset: _groupPhoto?.path ?? 'assets/images/avatar_placeholder.png',
                     );
+                    await SettingsService.setGroupVisibility(chatId, _isPublic);
+                    await SettingsService.setGroupOnlyAdminsPost(chatId, false);
+                    await SettingsService.setGroupOnlyAdminsAdd(chatId, false);
                     if (!mounted) return;
                     Navigator.of(context).pop();
                     Navigator.pushNamed(context, AppRoutes.chat, arguments: {'chatId': chatId});
@@ -359,8 +363,8 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(PhosphorIconsBold.caretLeft),
+        leading: GlassIconButton(
+          icon: PhosphorIconsBold.caretLeft,
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text('Новый канал'),

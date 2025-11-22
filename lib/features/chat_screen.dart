@@ -78,8 +78,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final message = ChatMessage(
       id: now.millisecondsSinceEpoch.toString(),
       type: ChatMessageType.text,
-        text: text,
-        isMe: true,
+      text: text,
+      isMe: true,
       timestamp: now,
       isRead: true,
     );
@@ -93,9 +93,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final message = ChatMessage(
       id: now.millisecondsSinceEpoch.toString(),
       type: ChatMessageType.image,
-        mediaPath: path,
-        text: caption,
-        isMe: true,
+      mediaPath: path,
+      text: caption,
+      isMe: true,
       timestamp: now,
       isRead: true,
     );
@@ -109,9 +109,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final message = ChatMessage(
       id: now.millisecondsSinceEpoch.toString(),
       type: ChatMessageType.voice,
-        mediaPath: audioPath,
+      mediaPath: audioPath,
       voiceDurationSeconds: duration.inSeconds,
-        isMe: true,
+      isMe: true,
       timestamp: now,
       isRead: true,
     );
@@ -121,7 +121,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _scrollToBottom();
   }
 
-  Future<void> _addFileMessage(String path, String fileName, {String? caption}) async {
+  Future<void> _addFileMessage(String path, String fileName,
+      {String? caption}) async {
     // Предотвращение повторной отправки
     final fileKey = '$path|$fileName';
     if (_sentFiles.contains(fileKey)) {
@@ -130,15 +131,15 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       );
       return;
     }
-    
+
     final store = context.read<ChatStore>();
     final now = DateTime.now();
     final message = ChatMessage(
       id: now.millisecondsSinceEpoch.toString(),
       type: ChatMessageType.file,
-        mediaPath: path,
-        text: caption ?? fileName,
-        isMe: true,
+      mediaPath: path,
+      text: caption ?? fileName,
+      isMe: true,
       timestamp: now,
       isRead: true,
     );
@@ -153,7 +154,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     final message = ChatMessage(
       id: now.millisecondsSinceEpoch.toString(),
       type: ChatMessageType.call,
-      text: isIncoming 
+      text: isIncoming
           ? (isVideoCall ? 'Входящий видеозвонок' : 'Входящий звонок')
           : (isVideoCall ? 'Исходящий видеозвонок' : 'Исходящий звонок'),
       isMe: !isIncoming,
@@ -181,21 +182,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _showPollDialog() {
     final questionController = TextEditingController();
-    final optionControllers = [TextEditingController(), TextEditingController()];
+    final optionControllers = [
+      TextEditingController(),
+      TextEditingController()
+    ];
 
     _showAnimatedDialog(
       context: context,
       builder: (context) {
         return GlassContainer(
           padding: const EdgeInsets.all(24),
-          decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-                color: Theme.of(context).primaryColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(20),
-              ),
+          decoration:
+              Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
+                    color: Theme.of(context).primaryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Создать опрос', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('Создать опрос',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               SingleChildScrollView(
                 child: Column(
@@ -206,12 +212,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Вопрос',
-                        hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                        hintStyle:
+                            TextStyle(color: Colors.white.withOpacity(0.5)),
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.08),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                          borderSide:
+                              BorderSide(color: Colors.white.withOpacity(0.1)),
                         ),
                       ),
                     ),
@@ -223,12 +231,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                             style: const TextStyle(color: Colors.white),
                             decoration: InputDecoration(
                               hintText: 'Вариант ответа',
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                              hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.5)),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.08),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.1)),
                               ),
                             ),
                           ),
@@ -248,14 +258,18 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   GlassButton(
                     onPressed: () async {
                       final question = questionController.text.trim();
-                      final options = optionControllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).join('\n');
+                      final options = optionControllers
+                          .map((c) => c.text.trim())
+                          .where((s) => s.isNotEmpty)
+                          .join('\n');
                       if (question.isNotEmpty && options.isNotEmpty) {
                         Navigator.of(context).pop();
                         await _addPollMessage(question, options);
                       }
                     },
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Text('Создать'),
                     ),
                   ),
@@ -268,7 +282,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Future<void> _showAnimatedDialog({required BuildContext context, required WidgetBuilder builder}) {
+  Future<void> _showAnimatedDialog(
+      {required BuildContext context, required WidgetBuilder builder}) {
     setState(() => _isDialogOpen = true);
     return showDialog(
       context: context,
@@ -278,10 +293,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.all(24),
           child: builder(context),
-        )
-            .animate()
-            .fadeIn(duration: 300.ms, curve: Curves.easeOutCubic)
-            .scale(begin: const Offset(0.9, 0.9), duration: 300.ms, curve: Curves.easeOutCubic);
+        ).animate().fadeIn(duration: 300.ms, curve: Curves.easeOutCubic).scale(
+            begin: const Offset(0.9, 0.9),
+            duration: 300.ms,
+            curve: Curves.easeOutCubic);
       },
     ).then((_) => setState(() => _isDialogOpen = false));
   }
@@ -302,7 +317,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   void _showStickerPicker() {
-    final stickers = ['🎭', '😎', '🔥', '💯', '🎉', '❤️', '👍', '👎', '😂', '😢', '😮', '🤔'];
+    final stickers = [
+      '🎭',
+      '😎',
+      '🔥',
+      '💯',
+      '🎉',
+      '❤️',
+      '👍',
+      '👎',
+      '😂',
+      '😢',
+      '😮',
+      '🤔'
+    ];
     _showAnimatedDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -350,18 +378,21 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     _scrollToBottom();
   }
 
-  void _showCaptionDialog(String path, {required bool isImage, String? fileName}) {
+  void _showCaptionDialog(String path,
+      {required bool isImage, String? fileName}) {
     final captionController = TextEditingController();
     _showAnimatedDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.black87,
-        title: Text(isImage ? 'Добавить подпись к фото' : 'Добавить подпись к файлу'),
+        title: Text(
+            isImage ? 'Добавить подпись к фото' : 'Добавить подпись к файлу'),
         content: TextField(
           controller: captionController,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            hintText: isImage ? 'Подпись (необязательно)' : 'Подпись (необязательно)',
+            hintText:
+                isImage ? 'Подпись (необязательно)' : 'Подпись (необязательно)',
             hintStyle: const TextStyle(color: Colors.white54),
             suffixIcon: IconButton(
               icon: const Icon(PhosphorIconsBold.x, size: 18),
@@ -381,9 +412,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               final caption = captionController.text.trim();
               Navigator.of(context).pop();
               if (isImage) {
-                _addImageMessage(path, caption: caption.isEmpty ? null : caption);
+                _addImageMessage(path,
+                    caption: caption.isEmpty ? null : caption);
               } else {
-                _addFileMessage(path, fileName ?? 'Файл', caption: caption.isEmpty ? fileName : caption);
+                _addFileMessage(path, fileName ?? 'Файл',
+                    caption: caption.isEmpty ? fileName : caption);
               }
             },
             child: const Text('Отправить'),
@@ -394,15 +427,19 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _editMessage(String messageId, String newText) async {
-    await context.read<ChatStore>().editMessage(widget.chatId, messageId, newText);
-      }
+    await context
+        .read<ChatStore>()
+        .editMessage(widget.chatId, messageId, newText);
+  }
 
   Future<void> _deleteMessage(String messageId) async {
     await context.read<ChatStore>().deleteMessage(widget.chatId, messageId);
   }
 
   Future<void> _addReaction(String messageId, String emoji) async {
-    await context.read<ChatStore>().addReaction(widget.chatId, messageId, emoji);
+    await context
+        .read<ChatStore>()
+        .addReaction(widget.chatId, messageId, emoji);
     if (SettingsService.getHapticFeedback()) {
       HapticFeedback.selectionClick();
     }
@@ -427,7 +464,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       context: context,
       builder: (dialogContext) {
         final chatStore = dialogContext.read<ChatStore>();
-        final threads = chatStore.threads.where((t) => t.id != widget.chatId).toList();
+        final threads =
+            chatStore.threads.where((t) => t.id != widget.chatId).toList();
         return GlassContainer(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -436,7 +474,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const Text('Переслать сообщение', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('Переслать сообщение',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
                     IconButton(
                       icon: const Icon(PhosphorIconsBold.x),
@@ -451,7 +491,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     ? Padding(
                         padding: const EdgeInsets.all(32.0),
                         child: Text('Нет других чатов для пересылки',
-                            style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.6))),
                       )
                     : ListView.builder(
                         shrinkWrap: true,
@@ -460,18 +501,25 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           final thread = threads[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundImage: thread.avatarAsset.startsWith('assets/')
-                                  ? AssetImage(thread.avatarAsset)
-                                  : FileImage(File(thread.avatarAsset)) as ImageProvider,
+                              backgroundImage:
+                                  thread.avatarAsset.startsWith('assets/')
+                                      ? AssetImage(thread.avatarAsset)
+                                      : FileImage(File(thread.avatarAsset))
+                                          as ImageProvider,
                             ),
                             title: Text(thread.title),
-                            subtitle: thread.isGroup ? const Text('Группа') : null,
+                            subtitle:
+                                thread.isGroup ? const Text('Группа') : null,
                             onTap: () async {
-                              await chatStore.forwardMessage(widget.chatId, message.id, thread.id);
+                              await chatStore.forwardMessage(
+                                  widget.chatId, message.id, thread.id);
                               Navigator.of(dialogContext).pop();
                               if (parentContext.mounted) {
-                                ScaffoldMessenger.of(parentContext).showSnackBar(
-                                  SnackBar(content: Text('Сообщение переслано в ${thread.title}')),
+                                ScaffoldMessenger.of(parentContext)
+                                    .showSnackBar(
+                                  SnackBar(
+                                      content: Text(
+                                          'Сообщение переслано в ${thread.title}')),
                                 );
                               }
                             },
@@ -486,7 +534,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Future<T?> _showAnimatedBottomSheet<T>({required BuildContext context, required WidgetBuilder builder}) {
+  Future<T?> _showAnimatedBottomSheet<T>(
+      {required BuildContext context, required WidgetBuilder builder}) {
     setState(() => _isDialogOpen = true);
     return showModalBottomSheet<T>(
       context: context,
@@ -498,7 +547,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           child: builder(context)
               .animate()
               .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-              .slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutCubic),
+              .slideY(
+                  begin: 0.1,
+                  end: 0,
+                  duration: 400.ms,
+                  curve: Curves.easeOutCubic),
         );
       },
     ).then((value) {
@@ -530,295 +583,322 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
         final totalItems = reversedMessages.length + (_isTyping ? 1 : 0);
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: GlassIconButton(
-          icon: PhosphorIconsBold.caretLeft,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: _isChatSearchActive
-            ? TextField(
-                controller: _chatSearchController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Поиск в этом чате...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                ),
-                onChanged: (value) => setState(() {}),
-              )
-            : GestureDetector(
-          onTap: () {
-                Navigator.of(context).pushNamed(
-                  AppRoutes.profile,
-                  arguments: {'userName': chat.title, 'avatarAsset': chat.avatarAsset},
-                );
-          },
-          child: Column(
-                mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Hero(
-                    tag: 'avatar-${chat.id}',
-                    child: ClipOval(
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Image(
-                          image: _avatarProvider(chat.avatarAsset),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            toolbarHeight: _isChatSearchActive ? kToolbarHeight : 110,
+            leading: IconButton(
+              splashRadius: 24,
+              icon: const Icon(PhosphorIconsBold.caretLeft),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: _isChatSearchActive
+                ? TextField(
+                    controller: _chatSearchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Поиск в этом чате...',
+                      border: InputBorder.none,
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.5)),
                     ),
-                  ),
-                  // Убрано свечение от аватарки
-                ],
-              ),
-              const SizedBox(height: 6),
-                  Text(chat.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.green,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.green.withOpacity(0.5),
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text('в сети', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7))),
-                    ],
-                  ),
-            ],
-          ),
-        ),
-        centerTitle: true,
-        actions: _isChatSearchActive
-            ? [
-                GlassIconButton(
-                  icon: Icons.close,
-                  onPressed: () => setState(() {
-                    _isChatSearchActive = false;
-                    _chatSearchController.clear();
-                  }),
-                )
-              ]
-            : [
-                Builder(
-                  builder: (buttonContext) => GlassIconButton(
-                    icon: PhosphorIconsBold.dotsThreeVertical,
-                    onPressed: () {
-                      _showCustomMenu(buttonContext, chatStore, chat);
+                    onChanged: (value) => setState(() {}),
+                  )
+                : GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.profile,
+                        arguments: {
+                          'userName': chat.title,
+                          'avatarAsset': chat.avatarAsset
+                        },
+                      );
                     },
-                  ),
-                )
-              ],
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-      ),
-      body: Stack(
-        children: [
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                        image: AssetImage(themeProvider.backgroundImage ?? 'assets/images/background_pattern.png'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
-          ),
-          Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                      controller: _scrollController,
-                  reverse: true,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.only(top: 96, bottom: 72),
-                      itemCount: totalItems,
-                  itemBuilder: (context, index) {
-                    if (_isTyping && index == 0) {
-                      return _TypingIndicator();
-                    }
-                    final messageIndex = _isTyping ? index - 1 : index;
-                    final message = reversedMessages[messageIndex];
-                    
-                    // Показываем дату перед первым сообщением или при смене дня
-                    final showDate = messageIndex == reversedMessages.length - 1 || 
-                        (messageIndex < reversedMessages.length - 1 && 
-                         reversedMessages[messageIndex + 1].timestamp.day != message.timestamp.day);
-                    
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (showDate) _buildDateHeader(message.timestamp),
-                        GestureDetector(
-                      onDoubleTap: SettingsService.getDoubleTapToLike()
-                          ? () {
-                              _addReaction(message.id, '❤️');
-                              if (SettingsService.getHapticFeedback()) {
-                                HapticFeedback.mediumImpact();
-                              }
-                            }
-                          : null,
-                      child: Dismissible(
-                        key: Key(message.id),
-                        direction: SettingsService.getSwipeToReply()
-                            ? (message.isMe
-                                ? DismissDirection.startToEnd
-                                : DismissDirection.endToStart)
-                            : DismissDirection.none,
-                        background: Container(
-                          alignment: message.isMe
-                              ? Alignment.centerLeft
-                              : Alignment.centerRight,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Icon(
-                            PhosphorIconsBold.arrowBendUpLeft,
-                            color: Theme.of(context).primaryColor,
-                            size: 24,
-                          ),
-                        ),
-                        onDismissed: (direction) {
-                          // Не удаляем сообщение, только отвечаем
-                          if (SettingsService.getSwipeToReply()) {
-                            _replyToMessage(message);
-                          }
-                        },
-                        confirmDismiss: (direction) async {
-                          // Предотвращаем удаление, только отвечаем
-                          if (SettingsService.getSwipeToReply()) {
-                            _replyToMessage(message);
-                            return false; // Не удаляем сообщение
-                          }
-                          return false;
-                        },
-                        child: LongPressDraggable<ChatMessage>(
-                          data: message,
-                          feedback: Material(
-                            color: Colors.transparent,
-                            child: Transform.scale(
-                              scale: 1.03,
-                              child: Opacity(
-                                opacity: 0.92,
-                                child: _MessageBubble(
-                                  message: message,
-                                  onEdit: _editMessage,
-                                  onDelete: _deleteMessage,
-                                  onReaction: _addReaction,
-                                  onForward: _forwardMessage,
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Hero(
+                              tag: 'avatar-${chat.id}',
+                              child: ClipOval(
+                                child: SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: Image(
+                                    image: _avatarProvider(chat.avatarAsset),
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          child: _MessageBubble(
-                            message: message,
-                            onEdit: _editMessage,
-                            onDelete: _deleteMessage,
-                            onReaction: _addReaction,
-                            onForward: _forwardMessage,
+                            // Убрано свечение от аватарки
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(chat.title,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.green,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.green.withOpacity(0.5),
+                                blurRadius: 6,
+                                spreadRadius: 2,
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    )
-                        .animate(delay: (30 * messageIndex).ms)
-                        .fadeIn(duration: 400.ms, curve: Curves.easeOutCubic)
-                        .slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
                       ],
-                    );
-                  },
-                ),
-              ),
-              AnimatedSlide(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                // Исправлен баг: панель не скрывается при открытии настроек через Navigator
-                offset: (_isDialogOpen && ModalRoute.of(context)?.isCurrent == true) ? const Offset(0, 1) : Offset.zero,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Эмодзи панель
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 280),
-                      curve: Curves.easeInOutCubic,
-                      child: _isEmojiPanelVisible ? _buildEmojiPanel() : const SizedBox.shrink(),
                     ),
-                    AnimateOnDisplay(
-                      delayMs: 50,
-                      child: DragTarget<ChatMessage>(
-                        builder: (context, candidate, rejected) => _MessageInputField(
-                          onSendText: _addTextMessage,
-                          onTypingChanged: (typing) => setState(() => _isTyping = typing),
-                          onPickImage: () {
-                            _showImagePicker(ImageSource.gallery);
-                          },
-                          onToggleRecord: _onToggleRecord,
-                          replyToMessageId: _replyToMessageId,
-                          replyToMessageText: _replyToMessageText,
-                          onCancelReply: () {
-                            setState(() {
-                              _replyToMessageId = null;
-                              _replyToMessageText = null;
-                            });
-                          },
-                        ),
-                        onAccept: (message) {
-                          _replyToMessage(message);
+                  ),
+            centerTitle: true,
+            actions: _isChatSearchActive
+                ? [
+                    IconButton(
+                      splashRadius: 22,
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() {
+                        _isChatSearchActive = false;
+                        _chatSearchController.clear();
+                      }),
+                    )
+                  ]
+                : [
+                    Builder(
+                      builder: (buttonContext) => IconButton(
+                        splashRadius: 22,
+                        icon: const Icon(PhosphorIconsBold.dotsThreeVertical),
+                        onPressed: () {
+                          _showCustomMenu(buttonContext, chatStore, chat);
                         },
                       ),
-                    ),
+                    )
                   ],
-                ),
+            flexibleSpace: ClipRRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+          body: Stack(
+            children: [
+              Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage(themeProvider.backgroundImage ??
+                            'assets/images/background_pattern.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Column(
+                children: [
+                  Expanded(
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.only(top: 96, bottom: 72),
+                      itemCount: totalItems,
+                      itemBuilder: (context, index) {
+                        if (_isTyping && index == 0) {
+                          return _TypingIndicator();
+                        }
+                        final messageIndex = _isTyping ? index - 1 : index;
+                        final message = reversedMessages[messageIndex];
+
+                        // Показываем дату перед первым сообщением или при смене дня
+                        final showDate =
+                            messageIndex == reversedMessages.length - 1 ||
+                                (messageIndex < reversedMessages.length - 1 &&
+                                    reversedMessages[messageIndex + 1]
+                                            .timestamp
+                                            .day !=
+                                        message.timestamp.day);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (showDate) _buildDateHeader(message.timestamp),
+                            GestureDetector(
+                              onDoubleTap: SettingsService.getDoubleTapToLike()
+                                  ? () {
+                                      _addReaction(message.id, '❤️');
+                                      if (SettingsService.getHapticFeedback()) {
+                                        HapticFeedback.mediumImpact();
+                                      }
+                                    }
+                                  : null,
+                              child: Dismissible(
+                                key: Key(message.id),
+                                direction: SettingsService.getSwipeToReply()
+                                    ? (message.isMe
+                                        ? DismissDirection.startToEnd
+                                        : DismissDirection.endToStart)
+                                    : DismissDirection.none,
+                                background: Container(
+                                  alignment: message.isMe
+                                      ? Alignment.centerLeft
+                                      : Alignment.centerRight,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20),
+                                  child: Icon(
+                                    PhosphorIconsBold.arrowBendUpLeft,
+                                    color: Theme.of(context).primaryColor,
+                                    size: 24,
+                                  ),
+                                ),
+                                onDismissed: (direction) {
+                                  // Не удаляем сообщение, только отвечаем
+                                  if (SettingsService.getSwipeToReply()) {
+                                    _replyToMessage(message);
+                                  }
+                                },
+                                confirmDismiss: (direction) async {
+                                  // Предотвращаем удаление, только отвечаем
+                                  if (SettingsService.getSwipeToReply()) {
+                                    _replyToMessage(message);
+                                    return false; // Не удаляем сообщение
+                                  }
+                                  return false;
+                                },
+                                child: LongPressDraggable<ChatMessage>(
+                                  data: message,
+                                  feedback: Material(
+                                    color: Colors.transparent,
+                                    child: Transform.scale(
+                                      scale: 1.03,
+                                      child: Opacity(
+                                        opacity: 0.92,
+                                        child: _MessageBubble(
+                                          message: message,
+                                          onEdit: _editMessage,
+                                          onDelete: _deleteMessage,
+                                          onReaction: _addReaction,
+                                          onForward: _forwardMessage,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  child: _MessageBubble(
+                                    message: message,
+                                    onEdit: _editMessage,
+                                    onDelete: _deleteMessage,
+                                    onReaction: _addReaction,
+                                    onForward: _forwardMessage,
+                                  ),
+                                ),
+                              ),
+                            )
+                                .animate(delay: (30 * messageIndex).ms)
+                                .fadeIn(
+                                    duration: 400.ms,
+                                    curve: Curves.easeOutCubic)
+                                .slideY(
+                                    begin: 0.1,
+                                    end: 0,
+                                    curve: Curves.easeOutCubic),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  AnimatedSlide(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    // Исправлен баг: панель не скрывается при открытии настроек через Navigator
+                    offset: (_isDialogOpen &&
+                            ModalRoute.of(context)?.isCurrent == true)
+                        ? const Offset(0, 1)
+                        : Offset.zero,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Эмодзи панель
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeInOutCubic,
+                          child: _isEmojiPanelVisible
+                              ? _buildEmojiPanel()
+                              : const SizedBox.shrink(),
+                        ),
+                        AnimateOnDisplay(
+                          delayMs: 50,
+                          child: DragTarget<ChatMessage>(
+                            builder: (context, candidate, rejected) =>
+                                _MessageInputField(
+                              onSendText: _addTextMessage,
+                              onTypingChanged: (typing) =>
+                                  setState(() => _isTyping = typing),
+                              onPickImage: () {
+                                _showImagePicker(ImageSource.gallery);
+                              },
+                              onToggleRecord: _onToggleRecord,
+                              replyToMessageId: _replyToMessageId,
+                              replyToMessageText: _replyToMessageText,
+                              onCancelReply: () {
+                                setState(() {
+                                  _replyToMessageId = null;
+                                  _replyToMessageText = null;
+                                });
+                              },
+                            ),
+                            onAccept: (message) {
+                              _replyToMessage(message);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-        },
+        );
+      },
     );
   }
 
-  void _showCustomMenu(BuildContext context, ChatStore chatStore, ChatThread chat) {
+  void _showCustomMenu(
+      BuildContext context, ChatStore chatStore, ChatThread chat) {
     setState(() => _isDialogOpen = true);
-    
+
     // Получаем позицию кнопки
     final RenderBox? buttonBox = context.findRenderObject() as RenderBox?;
     if (buttonBox == null || !buttonBox.attached) return;
-    
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final buttonPosition = buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
+
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
+    final buttonPosition =
+        buttonBox.localToGlobal(Offset.zero, ancestor: overlay);
     final buttonSize = buttonBox.size;
-    
+
     // Позиционируем меню под кнопкой, выравнивая по правому краю
     final screenWidth = overlay.size.width;
     final menuWidth = 200.0; // Примерная ширина меню
-    
+
     final position = RelativeRect.fromLTRB(
       screenWidth - menuWidth - 16, // Справа с отступом
-      buttonPosition.dy + buttonSize.height + 8, // Под кнопкой с небольшим отступом
+      buttonPosition.dy +
+          buttonSize.height +
+          8, // Под кнопкой с небольшим отступом
       menuWidth + 16,
       overlay.size.height - buttonPosition.dy - buttonSize.height - 8,
     );
@@ -833,13 +913,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         _buildMenuItem('call', 'Звонок', PhosphorIconsBold.phone),
         _buildMenuItem('video', 'Видеозвонок', PhosphorIconsBold.videoCamera),
         const PopupMenuDivider(),
-        _buildMenuItem('search', 'Поиск в чате', PhosphorIconsBold.magnifyingGlass),
+        _buildMenuItem(
+            'search', 'Поиск в чате', PhosphorIconsBold.magnifyingGlass),
         _buildMenuItem('media', 'Медиафайлы', PhosphorIconsBold.images),
         _buildMenuItem('files', 'Файлы', PhosphorIconsBold.file),
         const PopupMenuDivider(),
-        _buildMenuItem('mute', 'Отключить уведомления', PhosphorIconsBold.bellSlash),
+        _buildMenuItem(
+            'mute', 'Отключить уведомления', PhosphorIconsBold.bellSlash),
         _buildMenuItem('pin', 'Закрепить чат', PhosphorIconsBold.pushPin),
-        _buildMenuItem('clear', 'Очистить историю', PhosphorIconsBold.trash, isDestructive: true),
+        _buildMenuItem('clear', 'Очистить историю', PhosphorIconsBold.trash,
+            isDestructive: true),
       ],
     ).then((value) {
       setState(() => _isDialogOpen = false);
@@ -848,17 +931,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     });
   }
 
-  PopupMenuItem<String> _buildMenuItem(String value, String text, IconData icon, {bool isDestructive = false}) {
+  PopupMenuItem<String> _buildMenuItem(String value, String text, IconData icon,
+      {bool isDestructive = false}) {
     return PopupMenuItem<String>(
       value: value,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: isDestructive ? Colors.redAccent : Theme.of(context).primaryColor),
+            Icon(icon,
+                size: 18,
+                color: isDestructive
+                    ? Colors.redAccent
+                    : Theme.of(context).primaryColor),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(text, style: TextStyle(color: isDestructive ? Colors.redAccent : Colors.white.withOpacity(0.9))),
+              child: Text(text,
+                  style: TextStyle(
+                      color: isDestructive
+                          ? Colors.redAccent
+                          : Colors.white.withOpacity(0.9))),
             ),
           ],
         ),
@@ -866,7 +958,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _handleMenuSelection(String value, ChatStore chatStore, ChatThread chat) async {
+  void _handleMenuSelection(
+      String value, ChatStore chatStore, ChatThread chat) async {
     switch (value) {
       case 'call':
         final result = await Navigator.push(
@@ -915,14 +1008,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         final isMuted = SettingsService.isChatMuted(widget.chatId);
         await SettingsService.setChatMuted(widget.chatId, !isMuted);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(!isMuted ? 'Уведомления отключены' : 'Уведомления включены')),
+          SnackBar(
+              content: Text(
+                  !isMuted ? 'Уведомления отключены' : 'Уведомления включены')),
         );
         break;
       case 'pin':
         final isPinned = SettingsService.isChatPinned(widget.chatId);
         await SettingsService.setChatPinned(widget.chatId, !isPinned);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(!isPinned ? 'Чат закреплен' : 'Чат откреплен')),
+          SnackBar(
+              content: Text(!isPinned ? 'Чат закреплен' : 'Чат откреплен')),
         );
         chatStore.notifyListeners();
         break;
@@ -932,7 +1028,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           builder: (context) => AlertDialog(
             backgroundColor: Colors.black87,
             title: const Text('Очистить историю'),
-            content: const Text('Вы уверены, что хотите удалить всю историю переписки?'),
+            content: const Text(
+                'Вы уверены, что хотите удалить всю историю переписки?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -946,7 +1043,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     const SnackBar(content: Text('История очищена')),
                   );
                 },
-                child: const Text('Очистить', style: TextStyle(color: Colors.redAccent)),
+                child: const Text('Очистить',
+                    style: TextStyle(color: Colors.redAccent)),
               ),
             ],
           ),
@@ -973,8 +1071,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   String _formatDate(DateTime date) {
-    final months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
-                    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    final months = [
+      'января',
+      'февраля',
+      'марта',
+      'апреля',
+      'мая',
+      'июня',
+      'июля',
+      'августа',
+      'сентября',
+      'октября',
+      'ноября',
+      'декабря'
+    ];
     return '${date.day} ${months[date.month - 1]}';
   }
 
@@ -1002,13 +1112,151 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildEmojiPanel() {
-    final inputState = context.findAncestorStateOfType<_MessageInputFieldState>();
+    final inputState =
+        context.findAncestorStateOfType<_MessageInputFieldState>();
     final emojiCategories = {
-      'Часто используемые': ['😀', '😂', '❤️', '😍', '🤔', '👍', '👎', '🙏', '🔥', '💯', '🎉', '😢'],
-      'Эмоции': ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔'],
-      'Жесты': ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏'],
-      'Предметы': ['📱', '💻', '⌚', '📷', '📹', '🎥', '📺', '📻', '🎙', '🎚', '🎛', '⏱', '⏲', '⏰', '🕰', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯', '🪔', '🧯', '🛢', '💸', '💵', '💴', '💶'],
-      'Еда': ['🍎', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶', '🌽', '🥕', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨'],
+      'Часто используемые': [
+        '😀',
+        '😂',
+        '❤️',
+        '😍',
+        '🤔',
+        '👍',
+        '👎',
+        '🙏',
+        '🔥',
+        '💯',
+        '🎉',
+        '😢'
+      ],
+      'Эмоции': [
+        '😀',
+        '😃',
+        '😄',
+        '😁',
+        '😆',
+        '😅',
+        '🤣',
+        '😂',
+        '🙂',
+        '🙃',
+        '😉',
+        '😊',
+        '😇',
+        '🥰',
+        '😍',
+        '🤩',
+        '😘',
+        '😗',
+        '😚',
+        '😙',
+        '😋',
+        '😛',
+        '😜',
+        '🤪',
+        '😝',
+        '🤑',
+        '🤗',
+        '🤭',
+        '🤫',
+        '🤔'
+      ],
+      'Жесты': [
+        '👋',
+        '🤚',
+        '🖐',
+        '✋',
+        '🖖',
+        '👌',
+        '🤏',
+        '✌️',
+        '🤞',
+        '🤟',
+        '🤘',
+        '🤙',
+        '👈',
+        '👉',
+        '👆',
+        '🖕',
+        '👇',
+        '☝️',
+        '👍',
+        '👎',
+        '✊',
+        '👊',
+        '🤛',
+        '🤜',
+        '👏',
+        '🙌',
+        '👐',
+        '🤲',
+        '🤝',
+        '🙏'
+      ],
+      'Предметы': [
+        '📱',
+        '💻',
+        '⌚',
+        '📷',
+        '📹',
+        '🎥',
+        '📺',
+        '📻',
+        '🎙',
+        '🎚',
+        '🎛',
+        '⏱',
+        '⏲',
+        '⏰',
+        '🕰',
+        '⌛',
+        '⏳',
+        '📡',
+        '🔋',
+        '🔌',
+        '💡',
+        '🔦',
+        '🕯',
+        '🪔',
+        '🧯',
+        '🛢',
+        '💸',
+        '💵',
+        '💴',
+        '💶'
+      ],
+      'Еда': [
+        '🍎',
+        '🍊',
+        '🍋',
+        '🍌',
+        '🍉',
+        '🍇',
+        '🍓',
+        '🍈',
+        '🍒',
+        '🍑',
+        '🥭',
+        '🍍',
+        '🥥',
+        '🥝',
+        '🍅',
+        '🍆',
+        '🥑',
+        '🥦',
+        '🥬',
+        '🥒',
+        '🌶',
+        '🌽',
+        '🥕',
+        '🥔',
+        '🍠',
+        '🥐',
+        '🥯',
+        '🍞',
+        '🥖',
+        '🥨'
+      ],
     };
 
     return Container(
@@ -1030,7 +1278,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               itemCount: emojiCategories.length,
               itemBuilder: (context, index) {
                 final category = emojiCategories.keys.elementAt(index);
-                final isSelected = inputState?._selectedEmojiCategory == category;
+                final isSelected =
+                    inputState?._selectedEmojiCategory == category;
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: GlassButton(
@@ -1041,15 +1290,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     },
                     minWidth: 60,
                     minHeight: 32,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Text(
                       category,
                       style: TextStyle(
-                        fontSize: 12, 
-                        color: isSelected 
-                          ? Colors.white 
-                          : Colors.white.withOpacity(0.8),
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontSize: 12,
+                        color: isSelected
+                            ? Colors.white
+                            : Colors.white.withOpacity(0.8),
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -1067,19 +1318,23 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 mainAxisSpacing: 4,
                 crossAxisSpacing: 4,
               ),
-              itemCount: inputState != null 
-                ? (emojiCategories[inputState._selectedEmojiCategory]?.length ?? 0)
-                : emojiCategories.values.expand((x) => x).length,
+              itemCount: inputState != null
+                  ? (emojiCategories[inputState._selectedEmojiCategory]
+                          ?.length ??
+                      0)
+                  : emojiCategories.values.expand((x) => x).length,
               itemBuilder: (context, index) {
                 final emojis = inputState != null
-                  ? (emojiCategories[inputState._selectedEmojiCategory] ?? [])
-                  : emojiCategories.values.expand((x) => x).toList();
+                    ? (emojiCategories[inputState._selectedEmojiCategory] ?? [])
+                    : emojiCategories.values.expand((x) => x).toList();
                 if (index >= emojis.length) return const SizedBox();
                 final emoji = emojis[index];
                 return GlassButton(
                   onPressed: () {
-                    final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
-                    final inputState = context.findAncestorStateOfType<_MessageInputFieldState>();
+                    final chatScreenState =
+                        context.findAncestorStateOfType<_ChatScreenState>();
+                    final inputState = context
+                        .findAncestorStateOfType<_MessageInputFieldState>();
                     if (inputState != null) {
                       inputState._controller.text += emoji;
                     }
@@ -1096,9 +1351,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ),
         ],
       ),
-    ).animate()
-      .slideY(begin: 0.3, end: 0, duration: const Duration(milliseconds: 280), curve: Curves.easeOutCubic)
-      .fadeIn(duration: const Duration(milliseconds: 250));
+    )
+        .animate()
+        .slideY(
+            begin: 0.3,
+            end: 0,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic)
+        .fadeIn(duration: const Duration(milliseconds: 250));
   }
 
   void _showSearchInChat(BuildContext context) {
@@ -1119,7 +1379,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      const Text('Поиск в чате', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text('Поиск в чате',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const Spacer(),
                       IconButton(
                         icon: const Icon(PhosphorIconsBold.x),
@@ -1136,11 +1398,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Введите текст для поиска...',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                      prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass, color: Colors.white.withOpacity(0.7)),
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.5)),
+                      prefixIcon: Icon(PhosphorIconsBold.magnifyingGlass,
+                          color: Colors.white.withOpacity(0.7)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.2)),
                       ),
                     ),
                     onChanged: (query) {
@@ -1155,16 +1420,20 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       if (searchController.text.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.all(32.0),
-                          child: Text('Введите текст для поиска', 
-                              style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                          child: Text('Введите текст для поиска',
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6))),
                         );
                       }
-                      final results = context.read<ChatStore>().searchInChat(widget.chatId, searchController.text);
+                      final results = context
+                          .read<ChatStore>()
+                          .searchInChat(widget.chatId, searchController.text);
                       if (results.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.all(32.0),
-                          child: Text('Ничего не найдено', 
-                              style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                          child: Text('Ничего не найдено',
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.6))),
                         );
                       }
                       return ListView.builder(
@@ -1174,15 +1443,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                           final message = results[index];
                           return ListTile(
                             leading: Icon(
-                              message.type == ChatMessageType.text 
-                                  ? PhosphorIconsBold.chatCircle 
+                              message.type == ChatMessageType.text
+                                  ? PhosphorIconsBold.chatCircle
                                   : PhosphorIconsBold.image,
                               color: Theme.of(context).primaryColor,
                             ),
-                            title: Text(message.text ?? '', 
+                            title: Text(message.text ?? '',
                                 style: const TextStyle(fontSize: 14)),
                             subtitle: Text(_formatTimestamp(message.timestamp),
-                                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.5),
+                                    fontSize: 12)),
                             onTap: () {
                               Navigator.of(context).pop();
                             },
@@ -1202,7 +1473,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _showMediaFiles(BuildContext context) {
     setState(() => _isDialogOpen = true);
-    final mediaMessages = context.read<ChatStore>().getMediaMessages(widget.chatId);
+    final mediaMessages =
+        context.read<ChatStore>().getMediaMessages(widget.chatId);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1217,9 +1489,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const Text('Медиафайлы', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('Медиафайлы',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    Text('${mediaMessages.length}', 
+                    Text('${mediaMessages.length}',
                         style: TextStyle(color: Colors.white.withOpacity(0.6))),
                     const SizedBox(width: 8),
                     IconButton(
@@ -1234,12 +1508,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 child: mediaMessages.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(32.0),
-                        child: Text('Нет медиафайлов', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                        child: Text('Нет медиафайлов',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.6))),
                       )
                     : GridView.builder(
                         shrinkWrap: true,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3,
                           crossAxisSpacing: 4,
                           mainAxisSpacing: 4,
@@ -1247,7 +1523,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         itemCount: mediaMessages.length,
                         itemBuilder: (context, index) {
                           final message = mediaMessages[index];
-                          if (message.type == ChatMessageType.image && message.mediaPath != null) {
+                          if (message.type == ChatMessageType.image &&
+                              message.mediaPath != null) {
                             return GestureDetector(
                               onTap: () {
                                 showDialog(
@@ -1258,9 +1535,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                     child: InteractiveViewer(
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
-                                        child: message.mediaPath!.startsWith('assets/')
-                                            ? Image.asset(message.mediaPath!, fit: BoxFit.contain)
-                                            : Image.file(File(message.mediaPath!), fit: BoxFit.contain),
+                                        child: message.mediaPath!
+                                                .startsWith('assets/')
+                                            ? Image.asset(message.mediaPath!,
+                                                fit: BoxFit.contain)
+                                            : Image.file(
+                                                File(message.mediaPath!),
+                                                fit: BoxFit.contain),
                                       ),
                                     ),
                                   ),
@@ -1269,8 +1550,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: message.mediaPath!.startsWith('assets/')
-                                    ? Image.asset(message.mediaPath!, fit: BoxFit.cover)
-                                    : Image.file(File(message.mediaPath!), fit: BoxFit.cover),
+                                    ? Image.asset(message.mediaPath!,
+                                        fit: BoxFit.cover)
+                                    : Image.file(File(message.mediaPath!),
+                                        fit: BoxFit.cover),
                               ),
                             );
                           }
@@ -1281,8 +1564,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                             ),
                             child: Center(
                               child: Icon(
-                                message.type == ChatMessageType.voice 
-                                    ? PhosphorIconsBold.microphone 
+                                message.type == ChatMessageType.voice
+                                    ? PhosphorIconsBold.microphone
                                     : PhosphorIconsBold.sticker,
                                 color: Colors.white.withOpacity(0.5),
                               ),
@@ -1300,7 +1583,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   void _showFiles(BuildContext context) {
     setState(() => _isDialogOpen = true);
-    final fileMessages = context.read<ChatStore>().getFileMessages(widget.chatId);
+    final fileMessages =
+        context.read<ChatStore>().getFileMessages(widget.chatId);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1315,9 +1599,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const Text('Файлы', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('Файлы',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    Text('${fileMessages.length}', 
+                    Text('${fileMessages.length}',
                         style: TextStyle(color: Colors.white.withOpacity(0.6))),
                     const SizedBox(width: 8),
                     IconButton(
@@ -1332,8 +1618,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 child: fileMessages.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(32.0),
-                        child: Text('Нет файлов', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.6))),
+                        child: Text('Нет файлов',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.6))),
                       )
                     : ListView.builder(
                         shrinkWrap: true,
@@ -1344,25 +1631,33 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor.withOpacity(0.15),
+                                color: Theme.of(context)
+                                    .primaryColor
+                                    .withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Icon(PhosphorIconsBold.file, 
-                                  color: Theme.of(context).primaryColor, size: 20),
+                              child: Icon(PhosphorIconsBold.file,
+                                  color: Theme.of(context).primaryColor,
+                                  size: 20),
                             ),
-                            title: Text(message.text ?? 'Файл', 
-                                style: const TextStyle(fontWeight: FontWeight.w600)),
+                            title: Text(message.text ?? 'Файл',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600)),
                             subtitle: Text(_formatTimestamp(message.timestamp),
-                                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+                                style: TextStyle(
+                                    color: Colors.white.withOpacity(0.5),
+                                    fontSize: 12)),
                             trailing: IconButton(
-                              icon: Icon(PhosphorIconsBold.download, 
+                              icon: Icon(PhosphorIconsBold.download,
                                   color: Colors.white.withOpacity(0.7)),
                               onPressed: () {
                                 if (message.mediaPath != null) {
                                   final file = File(message.mediaPath!);
                                   if (file.existsSync()) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Открыть файл: ${message.text}')),
+                                      SnackBar(
+                                          content: Text(
+                                              'Открыть файл: ${message.text}')),
                                     );
                                   }
                                 }
@@ -1410,9 +1705,12 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                Icon(PhosphorIconsBold.paperclip, color: Theme.of(context).primaryColor, size: 24),
+                Icon(PhosphorIconsBold.paperclip,
+                    color: Theme.of(context).primaryColor, size: 24),
                 const SizedBox(width: 12),
-                const Text('Отправить', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Отправить',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(
                   icon: const Icon(PhosphorIconsBold.x),
@@ -1455,7 +1753,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                     Navigator.of(context).pop();
                     final result = await FilePicker.platform.pickFiles();
                     if (result != null && result.files.single.path != null) {
-                      _showCaptionDialog(result.files.single.path!, isImage: false, fileName: result.files.single.name);
+                      _showCaptionDialog(result.files.single.path!,
+                          isImage: false, fileName: result.files.single.name);
                     }
                   },
                 ),
@@ -1465,9 +1764,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   label: 'Видео',
                   onTap: () async {
                     Navigator.of(context).pop();
-                    final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
+                    final XFile? video =
+                        await _picker.pickVideo(source: ImageSource.gallery);
                     if (video != null) {
-                      _showCaptionDialog(video.path, isImage: false, fileName: 'Видео');
+                      _showCaptionDialog(video.path,
+                          isImage: false, fileName: 'Видео');
                     }
                   },
                 ),
@@ -1497,7 +1798,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAttachmentOption(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+  Widget _buildAttachmentOption(BuildContext context,
+      {required IconData icon,
+      required String label,
+      required VoidCallback onTap}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1510,7 +1814,9 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             children: [
               Icon(icon, color: Theme.of(context).primaryColor, size: 32),
               const SizedBox(height: 8),
-              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
@@ -1536,18 +1842,21 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final alignment = message.isMe ? Alignment.centerRight : Alignment.centerLeft;
-    
+    final alignment =
+        message.isMe ? Alignment.centerRight : Alignment.centerLeft;
+
     // Telegram iOS style colors with Liquid Glass effect
     final userBubbleColor = theme.primaryColor; // Dark purple for gradient
-    final interlocutorBubbleColor = Colors.white; // White for gradient (will be made transparent)
+    final interlocutorBubbleColor =
+        Colors.white; // White for gradient (will be made transparent)
 
     return Align(
       alignment: alignment,
       child: GestureDetector(
         onLongPress: () => _showMessageMenu(context),
-          child: Container(
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        child: Container(
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.72),
           margin: EdgeInsets.only(
             left: message.isMe ? 48 : 10,
             right: message.isMe ? 10 : 48,
@@ -1556,7 +1865,8 @@ class _MessageBubble extends StatelessWidget {
           ),
           child: message.isMe
               ? _buildUserBubble(context, userBubbleColor, theme)
-              : _buildInterlocutorBubble(context, interlocutorBubbleColor, theme),
+              : _buildInterlocutorBubble(
+                  context, interlocutorBubbleColor, theme),
         ),
       ),
     );
@@ -1626,13 +1936,16 @@ class _MessageBubble extends StatelessWidget {
                     fontWeight: FontWeight.w400,
                   ),
                 ),
-              if (SettingsService.getShowTimestamps() && SettingsService.getShowReadReceipts())
+              if (SettingsService.getShowTimestamps() &&
+                  SettingsService.getShowReadReceipts())
                 const SizedBox(width: 4),
               if (SettingsService.getShowReadReceipts())
                 Icon(
                   message.isRead ? Icons.done_all : Icons.done,
                   size: 14,
-                  color: message.isRead ? Colors.white : Colors.white.withOpacity(0.7),
+                  color: message.isRead
+                      ? Colors.white
+                      : Colors.white.withOpacity(0.7),
                 ),
             ],
           ),
@@ -1641,12 +1954,19 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildInterlocutorBubble(BuildContext context, Color color, ThemeData theme) {
+  Widget _buildInterlocutorBubble(
+      BuildContext context, Color color, ThemeData theme) {
     final baseColor = const Color(0xFF2C1A3E).withOpacity(0.09);
     final lighterColor = Color.fromRGBO(
-      ((baseColor.red * 255) + (255 - baseColor.red * 255) * 0.01).round().clamp(0, 255),
-      ((baseColor.green * 255) + (255 - baseColor.green * 255) * 0.01).round().clamp(0, 255),
-      ((baseColor.blue * 255) + (255 - baseColor.blue * 255) * 0.01).round().clamp(0, 255),
+      ((baseColor.red * 255) + (255 - baseColor.red * 255) * 0.01)
+          .round()
+          .clamp(0, 255),
+      ((baseColor.green * 255) + (255 - baseColor.green * 255) * 0.01)
+          .round()
+          .clamp(0, 255),
+      ((baseColor.blue * 255) + (255 - baseColor.blue * 255) * 0.01)
+          .round()
+          .clamp(0, 255),
       0.09, // Прозрачность 9%
     );
     return ClipRRect(
@@ -1737,14 +2057,17 @@ class _MessageBubble extends StatelessWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).primaryColor.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3)),
+              border: Border.all(
+                  color: Theme.of(context).primaryColor.withOpacity(0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(entry.key, style: const TextStyle(fontSize: 14)),
                 const SizedBox(width: 4),
-                Text('${entry.value}', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8))),
+                Text('${entry.value}',
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.white.withOpacity(0.8))),
               ],
             ),
           ),
@@ -1756,7 +2079,7 @@ class _MessageBubble extends StatelessWidget {
   void _showMessageMenu(BuildContext context) {
     final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
     chatScreenState?.setState(() => chatScreenState._isDialogOpen = true);
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -1768,65 +2091,80 @@ class _MessageBubble extends StatelessWidget {
             children: [
               if (message.type == ChatMessageType.text)
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.copy, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.copy,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Копировать'),
                   onTap: () {
                     if (message.text != null) {
                       Clipboard.setData(ClipboardData(text: message.text!));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Скопировано в буфер обмена')),
+                        const SnackBar(
+                            content: Text('Скопировано в буфер обмена')),
                       );
                     }
                     Navigator.of(context).pop();
-                    chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                    chatScreenState
+                        ?.setState(() => chatScreenState._isDialogOpen = false);
                   },
                 ),
               if (message.type == ChatMessageType.text && message.isMe)
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.pencilSimple, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.pencilSimple,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Редактировать'),
                   onTap: () {
                     Navigator.of(context).pop();
-                    chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                    chatScreenState
+                        ?.setState(() => chatScreenState._isDialogOpen = false);
                     _showEditDialog(context);
                   },
                 ),
               ListTile(
-                leading: Icon(PhosphorIconsBold.arrowSquareOut, color: Theme.of(context).primaryColor),
+                leading: Icon(PhosphorIconsBold.arrowSquareOut,
+                    color: Theme.of(context).primaryColor),
                 title: const Text('Переслать'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                  chatScreenState
+                      ?.setState(() => chatScreenState._isDialogOpen = false);
                   onForward?.call(message);
                 },
               ),
               ListTile(
-                leading: Icon(PhosphorIconsBold.smiley, color: Theme.of(context).primaryColor),
+                leading: Icon(PhosphorIconsBold.smiley,
+                    color: Theme.of(context).primaryColor),
                 title: const Text('Добавить реакцию'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                  chatScreenState
+                      ?.setState(() => chatScreenState._isDialogOpen = false);
                   _showReactionPicker(context);
                 },
               ),
               if (message.type == ChatMessageType.text)
                 ListTile(
-                  leading: Icon(PhosphorIconsBold.arrowBendUpLeft, color: Theme.of(context).primaryColor),
+                  leading: Icon(PhosphorIconsBold.arrowBendUpLeft,
+                      color: Theme.of(context).primaryColor),
                   title: const Text('Ответить'),
                   onTap: () {
                     Navigator.of(context).pop();
-                    chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
-                    // TODO: Implement reply functionality
+                    chatScreenState?.setState(() {
+                      chatScreenState._isDialogOpen = false;
+                      chatScreenState._replyToMessage(message);
+                    });
                   },
                 ),
               if (message.isMe) ...[
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(PhosphorIconsBold.trash, color: Colors.redAccent),
-                  title: const Text('Удалить', style: TextStyle(color: Colors.redAccent)),
+                  leading: const Icon(PhosphorIconsBold.trash,
+                      color: Colors.redAccent),
+                  title: const Text('Удалить',
+                      style: TextStyle(color: Colors.redAccent)),
                   onTap: () {
                     Navigator.of(context).pop();
-                    chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                    chatScreenState
+                        ?.setState(() => chatScreenState._isDialogOpen = false);
                     onDelete?.call(message.id);
                   },
                 ),
@@ -1843,7 +2181,7 @@ class _MessageBubble extends StatelessWidget {
   void _showEditDialog(BuildContext context) {
     final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
     chatScreenState?.setState(() => chatScreenState._isDialogOpen = true);
-    
+
     final controller = TextEditingController(text: message.text);
     showDialog(
       context: context,
@@ -1862,7 +2200,8 @@ class _MessageBubble extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+              chatScreenState
+                  ?.setState(() => chatScreenState._isDialogOpen = false);
             },
             child: const Text('Отмена'),
           ),
@@ -1870,7 +2209,8 @@ class _MessageBubble extends StatelessWidget {
             onPressed: () {
               onEdit?.call(message.id, controller.text);
               Navigator.of(context).pop();
-              chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+              chatScreenState
+                  ?.setState(() => chatScreenState._isDialogOpen = false);
             },
             child: const Text('Сохранить'),
           ),
@@ -1884,7 +2224,7 @@ class _MessageBubble extends StatelessWidget {
   void _showReactionPicker(BuildContext context) {
     final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
     chatScreenState?.setState(() => chatScreenState._isDialogOpen = true);
-    
+
     final reactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
     showDialog(
       context: context,
@@ -1899,7 +2239,8 @@ class _MessageBubble extends StatelessWidget {
               onTap: () {
                 onReaction?.call(message.id, emoji);
                 Navigator.of(context).pop();
-                chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+                chatScreenState
+                    ?.setState(() => chatScreenState._isDialogOpen = false);
               },
               child: Text(emoji, style: const TextStyle(fontSize: 32)),
             );
@@ -1930,9 +2271,12 @@ class _MessageBubble extends StatelessWidget {
                     child: InteractiveViewer(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: (message.mediaPath != null && !message.mediaPath!.startsWith('assets/'))
-                            ? Image.file(File(message.mediaPath!), fit: BoxFit.contain)
-                            : Image.asset(message.mediaPath ?? '', fit: BoxFit.contain),
+                        child: (message.mediaPath != null &&
+                                !message.mediaPath!.startsWith('assets/'))
+                            ? Image.file(File(message.mediaPath!),
+                                fit: BoxFit.contain)
+                            : Image.asset(message.mediaPath ?? '',
+                                fit: BoxFit.contain),
                       ),
                     ),
                   ),
@@ -1940,9 +2284,14 @@ class _MessageBubble extends StatelessWidget {
               },
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: (message.mediaPath != null && !message.mediaPath!.startsWith('assets/'))
-                    ? Image.file(File(message.mediaPath!), width: MediaQuery.of(context).size.width * 0.65, fit: BoxFit.cover)
-                    : Image.asset(message.mediaPath ?? '', width: MediaQuery.of(context).size.width * 0.65, fit: BoxFit.cover),
+                child: (message.mediaPath != null &&
+                        !message.mediaPath!.startsWith('assets/'))
+                    ? Image.file(File(message.mediaPath!),
+                        width: MediaQuery.of(context).size.width * 0.65,
+                        fit: BoxFit.cover)
+                    : Image.asset(message.mediaPath ?? '',
+                        width: MediaQuery.of(context).size.width * 0.65,
+                        fit: BoxFit.cover),
               ),
             ),
             if (message.text != null && message.text!.isNotEmpty) ...[
@@ -1963,7 +2312,8 @@ class _MessageBubble extends StatelessWidget {
           sourcePath: message.mediaPath,
         );
       case ChatMessageType.file:
-        return _FileBubble(fileName: message.text ?? 'Файл', filePath: message.mediaPath);
+        return _FileBubble(
+            fileName: message.text ?? 'Файл', filePath: message.mediaPath);
       case ChatMessageType.location:
         return _LocationBubble(
           text: message.text ?? '',
@@ -1990,7 +2340,6 @@ class _MessageBubble extends StatelessWidget {
     return '$hours:$minutes';
   }
 }
-
 
 class _MessageInputField extends StatefulWidget {
   final void Function(String text) onSendText;
@@ -2070,7 +2419,9 @@ class _MessageInputFieldState extends State<_MessageInputField> {
               decoration: BoxDecoration(
                 color: Theme.of(context).primaryColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.3), width: 1.5),
+                border: Border.all(
+                    color: Theme.of(context).primaryColor.withOpacity(0.3),
+                    width: 1.5),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2079,7 +2430,8 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                   if (widget.replyToMessageText != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Theme.of(context).primaryColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(12),
@@ -2104,22 +2456,29 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                             ),
                           ),
                           IconButton(
-                            icon: Icon(PhosphorIconsBold.x, size: 14, color: Colors.white.withOpacity(0.6)),
+                            icon: Icon(PhosphorIconsBold.x,
+                                size: 14, color: Colors.white.withOpacity(0.6)),
                             onPressed: widget.onCancelReply,
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
                         ],
                       ),
-                    ).animate()
-                      .slideY(begin: -0.2, end: 0, duration: const Duration(milliseconds: 250), curve: Curves.easeOutCubic)
-                      .fadeIn(duration: const Duration(milliseconds: 200)),
+                    )
+                        .animate()
+                        .slideY(
+                            begin: -0.2,
+                            end: 0,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic)
+                        .fadeIn(duration: const Duration(milliseconds: 200)),
                   Row(
                     children: [
                       // Кнопка скрепки с меню
                       Builder(
                         builder: (context) {
-                          final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
+                          final chatScreenState = context
+                              .findAncestorStateOfType<_ChatScreenState>();
                           return GlassButton(
                             onPressed: () {
                               chatScreenState?._showAttachmentMenu(context);
@@ -2127,80 +2486,112 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                             minWidth: 36,
                             minHeight: 36,
                             padding: const EdgeInsets.all(8),
-                            child: Icon(PhosphorIconsBold.paperclip, color: Colors.white.withOpacity(0.9), size: 20),
+                            child: Icon(PhosphorIconsBold.paperclip,
+                                color: Colors.white.withOpacity(0.9), size: 20),
                           );
                         },
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                    child: Builder(
-                      builder: (context) {
-                        final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
-                        if (chatScreenState?._isRecording != true) {
-                          return TextField(
-                            controller: _controller,
-                            style: const TextStyle(color: Colors.white, fontSize: 16),
-                            decoration: InputDecoration(
-                              hintText: "Сообщение...",
-                              border: InputBorder.none,
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            ),
-                            onChanged: _onTextChanged,
-                            onSubmitted: (_) => _send(context),
-                          );
-                        }
-                        final recordDuration = chatScreenState!._recordDuration;
-                        final minutes = (recordDuration.inSeconds ~/ 60).toString().padLeft(2, '0');
-                        final seconds = (recordDuration.inSeconds % 60).toString().padLeft(2, '0');
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.red.withOpacity(0.4), width: 1.5),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.red,
-                                ),
-                              )
-                                .animate(onPlay: (controller) => controller.repeat())
-                                .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.3, 1.3), duration: const Duration(milliseconds: 500), curve: Curves.easeInOut)
-                                .then()
-                                .scale(begin: const Offset(1.3, 1.3), end: const Offset(1.0, 1.0), duration: const Duration(milliseconds: 500), curve: Curves.easeInOut),
-                              const SizedBox(width: 8),
-                              Text(
-                                '$minutes:$seconds',
+                        child: Builder(
+                          builder: (context) {
+                            final chatScreenState = context
+                                .findAncestorStateOfType<_ChatScreenState>();
+                            if (chatScreenState?._isRecording != true) {
+                              return TextField(
+                                controller: _controller,
                                 style: const TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                    color: Colors.white, fontSize: 16),
+                                decoration: InputDecoration(
+                                  hintText: "Сообщение...",
+                                  border: InputBorder.none,
+                                  hintStyle: TextStyle(
+                                      color: Colors.white.withOpacity(0.5)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
                                 ),
+                                onChanged: _onTextChanged,
+                                onSubmitted: (_) => _send(context),
+                              );
+                            }
+                            final recordDuration =
+                                chatScreenState!._recordDuration;
+                            final minutes = (recordDuration.inSeconds ~/ 60)
+                                .toString()
+                                .padLeft(2, '0');
+                            final seconds = (recordDuration.inSeconds % 60)
+                                .toString()
+                                .padLeft(2, '0');
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.red.withOpacity(0.4),
+                                    width: 1.5),
                               ),
-                            ],
-                          ),
-                        )
-                          .animate()
-                          .fadeIn(duration: const Duration(milliseconds: 200))
-                          .slideX(begin: -0.2, end: 0, duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
-                      },
-                    ),
-                  ),
-                  Builder(
-                    builder: (context) {
-                      final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
-                      final isRecording = chatScreenState?._isRecording ?? false;
-                      
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.red,
+                                    ),
+                                  )
+                                      .animate(
+                                          onPlay: (controller) =>
+                                              controller.repeat())
+                                      .scale(
+                                          begin: const Offset(1.0, 1.0),
+                                          end: const Offset(1.3, 1.3),
+                                          duration:
+                                              const Duration(milliseconds: 500),
+                                          curve: Curves.easeInOut)
+                                      .then()
+                                      .scale(
+                                          begin: const Offset(1.3, 1.3),
+                                          end: const Offset(1.0, 1.0),
+                                          duration:
+                                              const Duration(milliseconds: 500),
+                                          curve: Curves.easeInOut),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '$minutes:$seconds',
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                                .animate()
+                                .fadeIn(
+                                    duration: const Duration(milliseconds: 200))
+                                .slideX(
+                                    begin: -0.2,
+                                    end: 0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOutCubic);
+                          },
+                        ),
+                      ),
+                      Builder(
+                        builder: (context) {
+                          final chatScreenState = context
+                              .findAncestorStateOfType<_ChatScreenState>();
+                          final isRecording =
+                              chatScreenState?._isRecording ?? false;
+
+                          return Stack(
+                            alignment: Alignment.center,
+                            children: [
                               if (isRecording)
                                 TweenAnimationBuilder<double>(
                                   tween: Tween(begin: 0.0, end: 1.0),
@@ -2211,7 +2602,8 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                                       height: 40 + (value * 8),
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: Colors.red.withOpacity(0.2 - (value * 0.15)),
+                                        color: Colors.red
+                                            .withOpacity(0.2 - (value * 0.15)),
                                       ),
                                     );
                                   },
@@ -2225,7 +2617,9 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                                 padding: EdgeInsets.zero,
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(10),
-                                  color: isRecording ? Colors.red.withOpacity(0.3) : Colors.white.withOpacity(0.1),
+                                  color: isRecording
+                                      ? Colors.red.withOpacity(0.3)
+                                      : Colors.white.withOpacity(0.1),
                                 ),
                                 child: Material(
                                   color: Colors.transparent,
@@ -2238,17 +2632,32 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                                       height: 36,
                                       alignment: Alignment.center,
                                       child: AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
+                                        duration:
+                                            const Duration(milliseconds: 200),
                                         curve: Curves.easeInOut,
                                         child: Icon(
-                                          isRecording ? PhosphorIconsBold.microphone : PhosphorIconsBold.microphoneSlash,
-                                          color: isRecording ? Colors.red : Colors.white.withOpacity(0.9),
+                                          isRecording
+                                              ? PhosphorIconsBold.microphone
+                                              : PhosphorIconsBold
+                                                  .microphoneSlash,
+                                          color: isRecording
+                                              ? Colors.red
+                                              : Colors.white.withOpacity(0.9),
                                           size: 18,
                                         )
-                                          .animate(target: isRecording ? 1 : 0)
-                                          .scale(begin: const Offset(1.0, 1.0), end: const Offset(1.15, 1.15), duration: const Duration(milliseconds: 300))
-                                          .then()
-                                          .scale(begin: const Offset(1.15, 1.15), end: const Offset(1.0, 1.0), duration: const Duration(milliseconds: 300)),
+                                            .animate(
+                                                target: isRecording ? 1 : 0)
+                                            .scale(
+                                                begin: const Offset(1.0, 1.0),
+                                                end: const Offset(1.15, 1.15),
+                                                duration: const Duration(
+                                                    milliseconds: 300))
+                                            .then()
+                                            .scale(
+                                                begin: const Offset(1.15, 1.15),
+                                                end: const Offset(1.0, 1.0),
+                                                duration: const Duration(
+                                                    milliseconds: 300)),
                                       ),
                                     ),
                                   ),
@@ -2256,22 +2665,22 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                               ),
                             ],
                           );
-                    },
-                  ),
-                  const SizedBox(width: 6),
-                  GlassButton(
-                    onPressed: () => _send(context),
-                    minWidth: 36,
-                    minHeight: 36,
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      PhosphorIconsBold.paperPlaneRight, 
-                      color: _controller.text.trim().isNotEmpty 
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.5), 
-                      size: 18,
-                    ),
-                  ),
+                        },
+                      ),
+                      const SizedBox(width: 6),
+                      GlassButton(
+                        onPressed: () => _send(context),
+                        minWidth: 36,
+                        minHeight: 36,
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          PhosphorIconsBold.paperPlaneRight,
+                          color: _controller.text.trim().isNotEmpty
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.5),
+                          size: 18,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -2280,7 +2689,13 @@ class _MessageInputFieldState extends State<_MessageInputField> {
           ),
         ),
       ),
-    ).animate().slideY(begin: 0.2, duration: Duration(milliseconds: 350), curve: Curves.easeOutCubic).fadeIn(duration: Duration(milliseconds: 300));
+    )
+        .animate()
+        .slideY(
+            begin: 0.2,
+            duration: Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic)
+        .fadeIn(duration: Duration(milliseconds: 300));
   }
 }
 
@@ -2292,7 +2707,10 @@ class _FormattedText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spans = _parse(text, context);
-    return RichText(text: TextSpan(children: spans, style: const TextStyle(fontSize: 14, color: Colors.white)));
+    return RichText(
+        text: TextSpan(
+            children: spans,
+            style: const TextStyle(fontSize: 14, color: Colors.white)));
   }
 
   List<InlineSpan> _parse(String input, BuildContext context) {
@@ -2305,7 +2723,9 @@ class _FormattedText extends StatelessWidget {
         final end = input.indexOf(marker, i + 2);
         if (end != -1) {
           final content = input.substring(i + 2, end);
-          spans.add(TextSpan(text: content, style: const TextStyle(fontWeight: FontWeight.w700)));
+          spans.add(TextSpan(
+              text: content,
+              style: const TextStyle(fontWeight: FontWeight.w700)));
           i = end + 2;
           continue;
         }
@@ -2315,7 +2735,9 @@ class _FormattedText extends StatelessWidget {
         final end = input.indexOf('*', i + 1);
         if (end != -1 && (end == i + 1 || input[end - 1] != '*')) {
           final content = input.substring(i + 1, end);
-          spans.add(TextSpan(text: content, style: const TextStyle(fontStyle: FontStyle.italic)));
+          spans.add(TextSpan(
+              text: content,
+              style: const TextStyle(fontStyle: FontStyle.italic)));
           i = end + 1;
           continue;
         }
@@ -2324,7 +2746,9 @@ class _FormattedText extends StatelessWidget {
         final end = input.indexOf('_', i + 1);
         if (end != -1 && (end == i + 1 || input[end - 1] != '_')) {
           final content = input.substring(i + 1, end);
-          spans.add(TextSpan(text: content, style: const TextStyle(fontStyle: FontStyle.italic)));
+          spans.add(TextSpan(
+              text: content,
+              style: const TextStyle(fontStyle: FontStyle.italic)));
           i = end + 1;
           continue;
         }
@@ -2334,7 +2758,9 @@ class _FormattedText extends StatelessWidget {
         final end = input.indexOf('~~', i + 2);
         if (end != -1) {
           final content = input.substring(i + 2, end);
-          spans.add(TextSpan(text: content, style: const TextStyle(decoration: TextDecoration.lineThrough)));
+          spans.add(TextSpan(
+              text: content,
+              style: const TextStyle(decoration: TextDecoration.lineThrough)));
           i = end + 2;
           continue;
         }
@@ -2344,7 +2770,11 @@ class _FormattedText extends StatelessWidget {
         final end = input.indexOf('`', i + 1);
         if (end != -1) {
           final content = input.substring(i + 1, end);
-          spans.add(TextSpan(text: content, style: TextStyle(fontFamily: 'monospace', backgroundColor: Colors.white.withOpacity(0.1))));
+          spans.add(TextSpan(
+              text: content,
+              style: TextStyle(
+                  fontFamily: 'monospace',
+                  backgroundColor: Colors.white.withOpacity(0.1))));
           i = end + 1;
           continue;
         }
@@ -2391,7 +2821,8 @@ class _SpoilerState extends State<_Spoiler> {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         child: Text(
           _revealed ? widget.text : 'спойлер',
-          style: TextStyle(color: Colors.white.withOpacity(_revealed ? 1.0 : 0.0)),
+          style:
+              TextStyle(color: Colors.white.withOpacity(_revealed ? 1.0 : 0.0)),
         ),
       ),
     );
@@ -2449,7 +2880,8 @@ extension on _ChatScreenState {
         }
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Нет доступа к микрофону')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Нет доступа к микрофону')));
     }
   }
 }
@@ -2470,7 +2902,8 @@ class _VoiceBubble extends StatefulWidget {
   State<_VoiceBubble> createState() => _VoiceBubbleState();
 }
 
-class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderStateMixin {
+class _VoiceBubbleState extends State<_VoiceBubble>
+    with SingleTickerProviderStateMixin {
   bool _playing = false;
   Duration _position = Duration.zero;
   final AudioPlayer _player = AudioPlayer();
@@ -2511,8 +2944,8 @@ class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderSta
     final totalSecs = two(widget.duration.inSeconds % 60);
     final currentMins = two(_position.inMinutes);
     final currentSecs = two(_position.inSeconds % 60);
-    final progress = widget.duration.inMilliseconds > 0 
-        ? _position.inMilliseconds / widget.duration.inMilliseconds 
+    final progress = widget.duration.inMilliseconds > 0
+        ? _position.inMilliseconds / widget.duration.inMilliseconds
         : 0.0;
 
     return Row(
@@ -2537,8 +2970,12 @@ class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderSta
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: _waveHeights.asMap().entries.map((entry) {
-                            final phase = (_waveController.value * 2 * 3.14159) + (entry.key * 0.5);
-                            final height = entry.value * (0.6 + 0.4 * (0.5 + 0.5 * (math.sin(phase) + 1)));
+                            final phase =
+                                (_waveController.value * 2 * 3.14159) +
+                                    (entry.key * 0.5);
+                            final height = entry.value *
+                                (0.6 +
+                                    0.4 * (0.5 + 0.5 * (math.sin(phase) + 1)));
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 100),
                               width: 3.5,
@@ -2548,7 +2985,9 @@ class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderSta
                                 borderRadius: BorderRadius.circular(2),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Theme.of(context).primaryColor.withOpacity(0.5),
+                                    color: Theme.of(context)
+                                        .primaryColor
+                                        .withOpacity(0.5),
                                     blurRadius: 4,
                                     spreadRadius: 0.5,
                                   ),
@@ -2560,9 +2999,13 @@ class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderSta
                       },
                     ),
                   )
-                  .animate()
-                  .fadeIn(duration: const Duration(milliseconds: 300))
-                  .scale(begin: const Offset(0.8, 0.8), end: const Offset(1.0, 1.0), duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic)
+                      .animate()
+                      .fadeIn(duration: const Duration(milliseconds: 300))
+                      .scale(
+                          begin: const Offset(0.8, 0.8),
+                          end: const Offset(1.0, 1.0),
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic)
                 else
                   Container(
                     width: 140,
@@ -2589,12 +3032,16 @@ class _VoiceBubbleState extends State<_VoiceBubble> with SingleTickerProviderSta
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  _position.inSeconds > 0 ? "$currentMins:$currentSecs" : "$totalMins:$totalSecs",
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11),
+                  _position.inSeconds > 0
+                      ? "$currentMins:$currentSecs"
+                      : "$totalMins:$totalSecs",
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.8), fontSize: 11),
                 ),
                 Text(
                   ' / $totalMins:$totalSecs',
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.5), fontSize: 11),
                 ),
               ],
             ),
@@ -2645,7 +3092,7 @@ class _FileBubble extends StatelessWidget {
       );
       return;
     }
-    
+
     try {
       final uri = Uri.file(filePath!);
       if (await canLaunchUrl(uri)) {
@@ -2689,14 +3136,16 @@ class _FileBubble extends StatelessWidget {
                 children: [
                   Text(
                     fileName,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Нажмите, чтобы открыть',
-                    style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
+                    style: TextStyle(
+                        fontSize: 11, color: Colors.white.withOpacity(0.6)),
                   ),
                 ],
               ),
@@ -2724,7 +3173,9 @@ class _CallBubble extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          text.contains('видео') ? PhosphorIconsBold.videoCamera : PhosphorIconsBold.phone,
+          text.contains('видео')
+              ? PhosphorIconsBold.videoCamera
+              : PhosphorIconsBold.phone,
           color: Colors.white.withOpacity(0.8),
           size: 18,
         ),
@@ -2758,7 +3209,8 @@ class _LocationBubble extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIconsBold.mapPin, color: Theme.of(context).primaryColor, size: 32),
+          Icon(PhosphorIconsBold.mapPin,
+              color: Theme.of(context).primaryColor, size: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -2767,12 +3219,14 @@ class _LocationBubble extends StatelessWidget {
               children: [
                 Text(
                   text.isNotEmpty ? text : 'Местоположение',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Нажмите, чтобы открыть в картах',
-                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
+                  style: TextStyle(
+                      fontSize: 11, color: Colors.white.withOpacity(0.6)),
                 ),
               ],
             ),
@@ -2803,9 +3257,11 @@ class _PollBubble extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(PhosphorIconsBold.chartBar, color: Theme.of(context).primaryColor, size: 20),
+              Icon(PhosphorIconsBold.chartBar,
+                  color: Theme.of(context).primaryColor, size: 20),
               const SizedBox(width: 8),
-              const Text('Опрос', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const Text('Опрос',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 12),
@@ -2819,8 +3275,13 @@ class _PollBubble extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Expanded(child: Text(option, style: const TextStyle(fontSize: 13))),
-                      Text('0%', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.6))),
+                      Expanded(
+                          child: Text(option,
+                              style: const TextStyle(fontSize: 13))),
+                      Text('0%',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withOpacity(0.6))),
                     ],
                   ),
                 ),
@@ -2859,7 +3320,8 @@ class _TypingIndicator extends StatefulWidget {
   State<_TypingIndicator> createState() => _TypingIndicatorState();
 }
 
-class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerProviderStateMixin {
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -2896,7 +3358,9 @@ class _TypingIndicatorState extends State<_TypingIndicator> with SingleTickerPro
               builder: (context, child) {
                 final delay = index * 0.2;
                 final animationValue = ((_controller.value + delay) % 1.0);
-                final opacity = (animationValue < 0.5) ? animationValue * 2 : 2 - (animationValue * 2);
+                final opacity = (animationValue < 0.5)
+                    ? animationValue * 2
+                    : 2 - (animationValue * 2);
                 return Padding(
                   padding: EdgeInsets.only(right: index < 2 ? 4 : 0),
                   child: Container(

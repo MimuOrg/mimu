@@ -33,11 +33,26 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
   }
 
   Future<void> _loadSettings() async {
+    await SettingsService.init();
     setState(() {
       _isMuted = SettingsService.isChatMuted(widget.chatId);
       _isPinned = SettingsService.isChatPinned(widget.chatId);
       _notificationsEnabled = !_isMuted;
+      _onlyAdminsCanPost = SettingsService.getGroupOnlyAdminsPost(widget.chatId);
+      _onlyAdminsCanAddMembers = SettingsService.getGroupOnlyAdminsAdd(widget.chatId);
     });
+  }
+
+  void _showPermissionSnack(BuildContext context, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -57,8 +72,8 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(PhosphorIconsBold.caretLeft),
+            leading: GlassIconButton(
+              icon: PhosphorIconsBold.caretLeft,
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text('Настройки группы'),
@@ -182,7 +197,13 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                                 style: TextStyle(color: Colors.white.withOpacity(0.6))),
                             trailing: Switch(
                               value: _onlyAdminsCanPost,
-                              onChanged: (value) => setState(() => _onlyAdminsCanPost = value),
+                              onChanged: (value) async {
+                                setState(() => _onlyAdminsCanPost = value);
+                                await SettingsService.setGroupOnlyAdminsPost(widget.chatId, value);
+                                _showPermissionSnack(context, value
+                                    ? 'Теперь публиковать могут только администраторы'
+                                    : 'Любой участник может публиковать сообщения');
+                              },
                             ),
                           ),
                           Divider(height: 1, color: Colors.white.withOpacity(0.1)),
@@ -193,7 +214,13 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                                 style: TextStyle(color: Colors.white.withOpacity(0.6))),
                             trailing: Switch(
                               value: _onlyAdminsCanAddMembers,
-                              onChanged: (value) => setState(() => _onlyAdminsCanAddMembers = value),
+                              onChanged: (value) async {
+                                setState(() => _onlyAdminsCanAddMembers = value);
+                                await SettingsService.setGroupOnlyAdminsAdd(widget.chatId, value);
+                                _showPermissionSnack(context, value
+                                    ? 'Добавлять участников могут только администраторы'
+                                    : 'Любой участник может приглашать друзей');
+                              },
                             ),
                           ),
                         ],
@@ -471,8 +498,8 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                       style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(PhosphorIconsBold.x),
+                GlassIconButton(
+                  icon: PhosphorIconsBold.x,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -538,8 +565,8 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
               children: [
                 const Text('Добавить участника', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
-                IconButton(
-                  icon: const Icon(PhosphorIconsBold.x),
+                GlassIconButton(
+                  icon: PhosphorIconsBold.x,
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],

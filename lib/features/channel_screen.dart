@@ -74,10 +74,11 @@ class _ChannelScreenState extends State<ChannelScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(PhosphorIconsBold.dotsThreeVertical),
-            onPressed: () {},
-            color: Colors.white,
+          GlassIconButton(
+            icon: PhosphorIconsBold.dotsThreeVertical,
+            onPressed: () {
+              _showChannelMenu(context);
+            },
           ),
         ],
         flexibleSpace: ClipRRect(
@@ -209,6 +210,63 @@ class _ChannelScreenState extends State<ChannelScreen> {
                   .slideY(begin: 0.2, end: 0, duration: const Duration(milliseconds: 400), delay: const Duration(milliseconds: 200), curve: Curves.easeOutCubic),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChannelMenu(BuildContext context) {
+    showGlassBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(PhosphorIconsBold.bell, color: Theme.of(context).primaryColor),
+            title: const Text('Уведомления'),
+            trailing: Switch(
+              value: true,
+              onChanged: (value) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(value ? 'Уведомления включены' : 'Уведомления выключены')),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(PhosphorIconsBold.magnifyingGlass, color: Theme.of(context).primaryColor),
+            title: const Text('Поиск в канале'),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Поиск в канале')),
+              );
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(PhosphorIconsBold.share, color: Theme.of(context).primaryColor),
+            title: const Text('Поделиться каналом'),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Поделиться каналом')),
+              );
+            },
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(PhosphorIconsBold.flag, color: Theme.of(context).primaryColor),
+            title: const Text('Пожаловаться'),
+            onTap: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Жалоба отправлена')),
+              );
+            },
           ),
         ],
       ),
