@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'package:mimu/data/api_service.dart';
-import 'package:mimu/data/models/chat_models.dart';
-import 'package:mimu/data/server_config.dart';
+import 'package:dio/dio.dart';
+import 'package:mimu/data/services/dio_api_client.dart';
+import 'package:mimu/data/e2ee/message_e2ee.dart';
 
 /// API для работы с сообщениями
 class MessageApi {
@@ -9,301 +8,113 @@ class MessageApi {
   factory MessageApi() => _instance;
   MessageApi._internal();
 
-  final ApiService _api = ApiService();
+  final Dio _dio = DioApiClient().dio;
 
-  /// Отправить текстовое сообщение
-  Future<Map<String, dynamic>> sendTextMessage({
+  /// Send encrypted message (server stores encrypted_payload as-is).
+  /// Contract:
+  /// Header: Authorization: Bearer <jwt>
+  /// Body: { chat_id, message_type, encrypted_payload, reply_to?, expires_at? }
+  Future<Map<String, dynamic>> sendMessage({
     required String chatId,
-    required String text,
+    required String messageType,
+    required String encryptedPayloadBase64,
     String? replyToMessageId,
+    DateTime? expiresAt,
   }) async {
-    final result = await _api.retryRequest(() => _api.post(
+    final resp = await _dio.post(
       '/api/v1/messages',
-      body: {
-        'chatId': chatId,
-        'type': 'text',
-        'text': text,
-        'replyToMessageId': replyToMessageId,
-        'timestamp': DateTime.now().toIso8601String(),
+      data: {
+        'chat_id': chatId,
+        'message_type': messageType,
+        'encrypted_payload': encryptedPayloadBase64,
+        if (replyToMessageId != null) 'reply_to': replyToMessageId,
+        if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
       },
-    ));
-
-    if (result['success'] == true && result['data'] != null) {
-      return {
-        'success': true,
-        'messageId': result['data']['messageId'],
-        'serverTimestamp': result['data']['timestamp'],
-      };
-    }
-
-    return result;
+    );
+    // Server returns 201 with { message_id, chat_id, created_at } (snake_case)
+    final data = resp.data is Map ? Map<String, dynamic>.from(resp.data as Map) : <String, dynamic>{};
+    return {'success': true, 'data': data};
   }
 
-  /// Отправить медиа сообщение (изображение, видео)
-  Future<Map<String, dynamic>> sendMediaMessage({
-    required String chatId,
-    required String fileId,
-    required String type, // 'image' или 'video'
-    String? caption,
-    String? replyToMessageId,
-  }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages',
-      body: {
-        'chatId': chatId,
-        'type': type,
-        'fileId': fileId,
-        'caption': caption,
-        'replyToMessageId': replyToMessageId,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    ));
-
-    if (result['success'] == true && result['data'] != null) {
-      return {
-        'success': true,
-        'messageId': result['data']['messageId'],
-        'serverTimestamp': result['data']['timestamp'],
-      };
-    }
-
-    return result;
-  }
-
-  /// Отправить голосовое сообщение
-  Future<Map<String, dynamic>> sendVoiceMessage({
-    required String chatId,
-    required String fileId,
-    required int durationSeconds,
-    String? replyToMessageId,
-  }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages',
-      body: {
-        'chatId': chatId,
-        'type': 'voice',
-        'fileId': fileId,
-        'durationSeconds': durationSeconds,
-        'replyToMessageId': replyToMessageId,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    ));
-
-    if (result['success'] == true && result['data'] != null) {
-      return {
-        'success': true,
-        'messageId': result['data']['messageId'],
-        'serverTimestamp': result['data']['timestamp'],
-      };
-    }
-
-    return result;
-  }
-
-  /// Отправить файл
-  Future<Map<String, dynamic>> sendFileMessage({
-    required String chatId,
-    required String fileId,
-    required String fileName,
-    required int fileSize,
-    String? caption,
-    String? replyToMessageId,
-  }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages',
-      body: {
-        'chatId': chatId,
-        'type': 'file',
-        'fileId': fileId,
-        'fileName': fileName,
-        'fileSize': fileSize,
-        'caption': caption,
-        'replyToMessageId': replyToMessageId,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-    ));
-
-    if (result['success'] == true && result['data'] != null) {
-      return {
-        'success': true,
-        'messageId': result['data']['messageId'],
-        'serverTimestamp': result['data']['timestamp'],
-      };
-    }
-
-    return result;
-  }
-
-  /// Редактировать сообщение
-  Future<Map<String, dynamic>> editMessage({
-    required String chatId,
-    required String messageId,
-    required String newText,
-  }) async {
-    final result = await _api.retryRequest(() => _api.put(
-      '/api/v1/messages/$messageId',
-      body: {
-        'chatId': chatId,
-        'text': newText,
-        'editedAt': DateTime.now().toIso8601String(),
-      },
-    ));
-
-    return result;
-  }
-
-  /// Удалить сообщение
-  Future<Map<String, dynamic>> deleteMessage({
-    required String chatId,
-    required String messageId,
-  }) async {
-    final result = await _api.retryRequest(() => _api.delete(
-      '/api/v1/messages/$messageId',
-      headers: {'X-ChatId': chatId},
-    ));
-
-    return result;
-  }
-
-  /// Добавить реакцию на сообщение
-  Future<Map<String, dynamic>> addReaction({
-    required String chatId,
-    required String messageId,
-    required String emoji,
-  }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages/$messageId/reactions',
-      body: {
-        'chatId': chatId,
-        'emoji': emoji,
-      },
-    ));
-
-    return result;
-  }
-
-  /// Удалить реакцию с сообщения
-  Future<Map<String, dynamic>> removeReaction({
-    required String chatId,
-    required String messageId,
-    required String emoji,
-  }) async {
-    final result = await _api.retryRequest(() => _api.delete(
-      '/api/v1/messages/$messageId/reactions',
-      headers: {
-        'X-ChatId': chatId,
-        'X-Emoji': emoji,
-      },
-    ));
-
-    return result;
-  }
-
-  /// Получить сообщения чата
+  /// Fetch messages (encrypted_payload is base64 from server).
   Future<Map<String, dynamic>> getMessages({
     required String chatId,
     int? limit,
     String? beforeMessageId,
   }) async {
-    final queryParams = <String, String>{
-      'chatId': chatId,
-      if (limit != null) 'limit': limit.toString(),
-      if (beforeMessageId != null) 'before': beforeMessageId,
-    };
-
-    final result = await _api.retryRequest(() => _api.get(
+    final resp = await _dio.get(
       '/api/v1/messages',
-      queryParams: queryParams,
-    ));
-
-    if (result['success'] == true && result['data'] != null) {
-      final messages = (result['data']['messages'] as List<dynamic>)
-          .map((m) => _messageFromJson(m as Map<String, dynamic>))
-          .toList();
-
-      return {
-        'success': true,
-        'messages': messages,
-        'hasMore': result['data']['hasMore'] ?? false,
-      };
-    }
-
-    return result;
-  }
-
-  /// Отметить сообщения как прочитанные
-  Future<Map<String, dynamic>> markAsRead({
-    required String chatId,
-    required String messageId,
-  }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages/$messageId/read',
-      body: {
-        'chatId': chatId,
+      queryParameters: {
+        'chat_id': chatId,
+        if (limit != null) 'limit': limit,
+        if (beforeMessageId != null) 'before': beforeMessageId,
       },
-    ));
-
-    return result;
+    );
+    return {'success': true, 'data': resp.data};
   }
 
-  /// Переслать сообщение
-  Future<Map<String, dynamic>> forwardMessage({
-    required String fromChatId,
+  /// Edit message (encrypted payload replaced). Backend: POST /api/v1/messages/{id}/edit
+  Future<void> editMessage({
     required String messageId,
-    required List<String> toChatIds,
+    required String encryptedPayloadBase64,
   }) async {
-    final result = await _api.retryRequest(() => _api.post(
-      '/api/v1/messages/$messageId/forward',
-      body: {
-        'fromChatId': fromChatId,
-        'toChatIds': toChatIds,
-      },
-    ));
-
-    return result;
-  }
-
-  /// Преобразовать JSON в ChatMessage
-  ChatMessage _messageFromJson(Map<String, dynamic> json) {
-    return ChatMessage(
-      id: json['id'] as String,
-      type: _messageTypeFromString(json['type'] as String),
-      text: json['text'] as String?,
-      mediaPath: json['mediaPath'] as String?,
-      voiceDurationSeconds: json['voiceDurationSeconds'] as int?,
-      isMe: json['isMe'] as bool? ?? false,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      isRead: json['isRead'] as bool? ?? false,
-      isEdited: json['isEdited'] as bool? ?? false,
-      reactions: Map<String, int>.from(json['reactions'] as Map? ?? {}),
-      editedText: json['editedText'] as String?,
+    await _dio.post(
+      '/api/v1/messages/$messageId/edit',
+      data: {'encrypted_payload': encryptedPayloadBase64},
     );
   }
 
-  /// Преобразовать строку в ChatMessageType
-  ChatMessageType _messageTypeFromString(String type) {
-    switch (type) {
-      case 'text':
-        return ChatMessageType.text;
-      case 'image':
-        return ChatMessageType.image;
-      case 'video':
-        return ChatMessageType.image; // Используем image для видео тоже
-      case 'voice':
-        return ChatMessageType.voice;
-      case 'file':
-        return ChatMessageType.file;
-      case 'call':
-        return ChatMessageType.call;
-      case 'location':
-        return ChatMessageType.location;
-      case 'poll':
-        return ChatMessageType.poll;
-      case 'sticker':
-        return ChatMessageType.sticker;
-      default:
-        return ChatMessageType.text;
-    }
+  /// Delete message. Backend: DELETE /api/v1/messages/{id}?mode=me|all
+  Future<void> deleteMessage({
+    required String messageId,
+    required String mode, // "me" | "all"
+  }) async {
+    await _dio.delete(
+      '/api/v1/messages/$messageId',
+      queryParameters: {'mode': mode},
+    );
+  }
+
+  Future<void> markAsRead({required String messageId}) async {
+    await _dio.post('/api/v1/messages/$messageId/read');
+  }
+
+  Future<void> forwardMessage({
+    required String messageId,
+    required List<String> toChatIds,
+  }) async {
+    await _dio.post(
+      '/api/v1/messages/$messageId/forward',
+      data: {'to_chat_ids': toChatIds},
+    );
+  }
+
+  /// Pin message in chat. Backend: POST /api/v1/chats/{id}/pin
+  Future<void> pinMessage({required String chatId, required String messageId}) async {
+    await _dio.post(
+      '/api/v1/chats/$chatId/pin',
+      data: {'message_id': messageId},
+    );
+  }
+
+  /// Unpin message in chat. Backend: DELETE /api/v1/chats/{id}/pin
+  Future<void> unpinMessage(String chatId) async {
+    await _dio.delete('/api/v1/chats/$chatId/pin');
+  }
+
+  /// Send plain text (encrypts via E2EE then sendMessage). For queue/offline use.
+  Future<Map<String, dynamic>> sendTextMessage({
+    required String chatId,
+    required String text,
+    String? replyToMessageId,
+  }) async {
+    final encrypted = await MessageE2EE.encryptJsonForChat(chatId, {'t': 'text', 'text': text});
+    return sendMessage(
+      chatId: chatId,
+      messageType: 'text',
+      encryptedPayloadBase64: encrypted,
+      replyToMessageId: replyToMessageId,
+    );
   }
 }
 

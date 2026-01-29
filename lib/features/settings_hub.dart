@@ -14,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
+import 'package:mimu/app/routes.dart';
 
 class SettingsHub extends StatefulWidget {
   const SettingsHub({super.key});
@@ -2192,7 +2193,7 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
                   trailing: Icon(CupertinoIcons.chevron_right,
                       color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    _showBlockedContacts(context);
+                    Navigator.of(context).pushNamed(AppRoutes.blockedUsers);
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
@@ -2204,20 +2205,21 @@ class _PrivacySettingsState extends State<_PrivacySettings> {
                   trailing: Icon(CupertinoIcons.chevron_right,
                       color: Colors.white.withOpacity(0.5)),
                   onTap: () {
-                    _showActiveSessions(context);
+                    Navigator.of(context).pushNamed(AppRoutes.devices);
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.1)),
                 ListTile(
-                  title: const Text('Скрыть время последнего посещения'),
-                  subtitle: Text('Скрыть время последнего посещения от всех',
+                  title: const Text('Показывать онлайн'),
+                  subtitle: Text('Показывать статус онлайн и время последнего посещения',
                       style: TextStyle(
                           color: Colors.white.withOpacity(0.6), fontSize: 12)),
                   trailing: Switch(
-                    value: _hideLastSeenTime,
+                    value: !_hideLastSeenTime,
                     onChanged: (value) async {
-                      await SettingsService.setHideLastSeenTime(value);
-                      setState(() => _hideLastSeenTime = value);
+                      await SettingsService.setHideLastSeenTime(!value);
+                      await SettingsService.setShowOnline(value);
+                      setState(() => _hideLastSeenTime = !value);
                     },
                   ),
                 ),
@@ -3973,54 +3975,6 @@ void _showBlockedContacts(BuildContext context) {
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-// Active sessions screen
-void _showActiveSessions(BuildContext context) {
-  Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (context) => Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: GlassIconButton(
-            icon: PhosphorIconsBold.caretLeft,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: const Text('Активные сессии'),
-        ),
-        body: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              GlassContainer(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(PhosphorIconsBold.deviceMobile,
-                          color: Theme.of(context).primaryColor),
-                      title: const Text('Это устройство'),
-                      subtitle: Text('Текущая сессия',
-                          style:
-                              TextStyle(color: Colors.white.withOpacity(0.6))),
-                      trailing: Icon(PhosphorIconsBold.check,
-                          color: Theme.of(context).primaryColor),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Завершить все другие сессии',
-                style: TextStyle(color: Colors.redAccent, fontSize: 14),
               ),
             ],
           ),

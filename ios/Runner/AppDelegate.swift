@@ -8,6 +8,12 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    
+    // Register AudioManagerPlugin
+    if let controller = window?.rootViewController as? FlutterViewController {
+      AudioManagerPlugin.register(with: registrar(forPlugin: "AudioManagerPlugin")!)
+    }
+    
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

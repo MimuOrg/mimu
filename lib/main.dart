@@ -7,15 +7,39 @@ import 'package:mimu/data/user_service.dart';
 import 'package:mimu/data/browser_service.dart';
 import 'package:mimu/data/channel_service.dart';
 import 'package:mimu/data/status_service.dart';
+import 'package:mimu/data/services/notification_service.dart';
+import 'package:mimu/data/analytics_service.dart';
+import 'package:mimu/data/server_config.dart';
+import 'package:mimu/data/message_queue.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   await SettingsService.init();
+  await ServerConfig.init();
   await UserService.init();
   await BrowserService.init();
   await ChannelService.init();
   await StatusService.init();
+  
+  // Инициализация уведомлений (опционально, может не работать без Firebase)
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('Failed to initialize notifications: $e');
+  }
+  
+  // Инициализация Sentry (опционально)
+  try {
+    await AnalyticsService.initializeSentry();
+  } catch (e) {
+    debugPrint('Failed to initialize Sentry: $e');
+  }
+  
+  // Инициализация очереди сообщений
+  MessageQueue().initialize();
+  
   runApp(const MimuApp());
 }
 

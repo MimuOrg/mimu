@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mimu/data/user_api.dart';
 
 class SettingsService {
   static const String _keyNotifications = 'notifications_enabled';
@@ -78,6 +79,11 @@ class SettingsService {
   static bool getTrafficSaving() => _prefs?.getBool(_keyTrafficSaving) ?? false;
   static Future<void> setTrafficSaving(bool value) async {
     await _prefs?.setBool(_keyTrafficSaving, value);
+  }
+
+  static bool getSyncEnabled() => _prefs?.getBool(_keySyncEnabled) ?? true;
+  static Future<void> setSyncEnabled(bool value) async {
+    await _prefs?.setBool(_keySyncEnabled, value);
   }
 
   // Browser
@@ -328,6 +334,15 @@ class SettingsService {
   static const String _keyShowTimestamps = 'show_timestamps';
   static const String _keyShowReadReceipts = 'show_read_receipts';
   static const String _keyShowOnlineStatus = 'show_online_status';
+  static const String _keyShowOnline = 'show_online'; // Server-side setting
+  
+  static bool getShowOnline() => _prefs?.getBool(_keyShowOnline) ?? true;
+  static Future<void> setShowOnline(bool value) async {
+    await _prefs?.setBool(_keyShowOnline, value);
+    try {
+      await UserApi().updateMe(settings: _serverSettingsMap());
+    } catch (_) {}
+  }
   static const String _keySwipeToReply = 'swipe_to_reply';
   static const String _keyDoubleTapToLike = 'double_tap_to_like';
   static const String _keySwipeNavigation = 'swipe_navigation';
@@ -550,7 +565,16 @@ class SettingsService {
       _prefs?.getBool(_keyHideLastSeenTime) ?? false;
   static Future<void> setHideLastSeenTime(bool value) async {
     await _prefs?.setBool(_keyHideLastSeenTime, value);
+    try {
+      await UserApi().updateMe(settings: _serverSettingsMap());
+    } catch (_) {}
   }
+
+  /// Карта настроек для сервера (show_online, hide_last_seen). Используется при синхронизации.
+  static Map<String, dynamic> _serverSettingsMap() => {
+        'show_online': getShowOnline(),
+        'hide_last_seen': getHideLastSeenTime(),
+      };
 
   static bool getHideTypingStatus() =>
       _prefs?.getBool(_keyHideTypingStatus) ?? false;

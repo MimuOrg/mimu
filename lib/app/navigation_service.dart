@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mimu/data/settings_service.dart';
+import 'package:mimu/app/routes.dart';
 
 class NavigationService {
+  static void navigateToChat(BuildContext context, String chatId) {
+    Navigator.of(context).pushNamed(AppRoutes.chat, arguments: {'chatId': chatId});
+  }
   static Route createSlideTransitionRoute(Widget page) {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => page,

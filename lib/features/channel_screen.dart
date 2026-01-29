@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:mimu/app/theme.dart';
 import 'package:mimu/data/channel_service.dart';
 import 'package:mimu/data/settings_service.dart';
+import 'package:mimu/data/user_api.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 
@@ -442,9 +443,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
             title: const Text('Пожаловаться'),
             onTap: () {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Жалоба отправлена')),
-              );
+              _showReportDialog();
             },
           ),
         ],
@@ -485,6 +484,65 @@ class _ChannelScreenState extends State<ChannelScreen> {
               }
             },
             child: const Text('Опубликовать'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    final reasonController = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Пожаловаться на канал'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Укажите причину жалобы:'),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: reasonController,
+                placeholder: 'Причина (необязательно)',
+                maxLines: 3,
+                autofocus: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              final reason = reasonController.text.trim();
+              try {
+                // Для канала используем название канала как decryptedContent
+                // chatId можно получить из ChatStore, если канал связан с чатом
+                await UserApi().report(
+                  chatId: null, // TODO: получить chatId канала, если доступен
+                  decryptedContent: 'Канал: ${widget.channelName}',
+                  reason: reason.isNotEmpty ? reason : null,
+                );
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Жалоба отправлена')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ошибка: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Отправить'),
           ),
         ],
       ),

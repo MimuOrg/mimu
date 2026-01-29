@@ -1,16 +1,21 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mimu/app/theme.dart';
 import 'package:mimu/data/settings_service.dart';
 
-/// Современный контейнер в стиле Telegram iOS
-/// Упрощенная версия без liquid glass, с аккуратными панелями
+const _backgroundPattern = DecorationImage(
+  image: AssetImage('assets/images/secondb.png'),
+  fit: BoxFit.cover,
+  repeat: ImageRepeat.repeat,
+  colorFilter: ColorFilter.mode(Colors.white24, BlendMode.srcOver),
+);
+
+/// Современный контейнер в стиле Telegram iOS, но без громоздкого блюра.
+/// Паттерн secondb.png и глубокие тени задают текстуру.
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final BoxDecoration? decoration;
   final EdgeInsets? padding;
   final EdgeInsets? margin;
-  final bool useBlur;
   final Color? backgroundColor;
   final double? borderRadius;
 
@@ -20,7 +25,6 @@ class GlassContainer extends StatelessWidget {
     this.decoration,
     this.padding,
     this.margin,
-    this.useBlur = false, // По умолчанию без блюра, как в Telegram
     this.backgroundColor,
     this.borderRadius,
   });
@@ -29,60 +33,53 @@ class GlassContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final glassTheme = Theme.of(context).extension<GlassTheme>();
     final finalDecoration = decoration ?? glassTheme?.baseGlass;
-    final isOptimized = SettingsService.getOptimizeMimu();
 
-    final borderRadiusValue = borderRadius ?? 
-        (finalDecoration?.borderRadius is BorderRadius 
-            ? (finalDecoration!.borderRadius as BorderRadius).topLeft.x 
-            : 12.0);
+    final borderRadiusValue = borderRadius ??
+        (finalDecoration?.borderRadius is BorderRadius
+            ? (finalDecoration!.borderRadius as BorderRadius).topLeft.x
+            : 16.0);
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
 
-    // Telegram iOS стиль - чистая панель с легкой прозрачностью
-    final bgColor = backgroundColor ?? 
-        finalDecoration?.color ?? 
-        const Color(0xFF1C1C1E).withOpacity(0.8); // iOS стиль
+    final bgColor = backgroundColor ??
+        finalDecoration?.color ??
+        Colors.black.withOpacity(0.6);
 
-    Widget container = Container(
+    final container = Container(
       margin: margin,
       padding: padding ?? const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: borderRadiusTyped,
+        image: _backgroundPattern,
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
-          width: 0.5,
+          color: Colors.white.withOpacity(0.12),
+          width: 0.6,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            spreadRadius: 0,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 14,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: child,
     );
 
-    // Telegram iOS стиль - блюр только для модальных окон и bottom sheets
-    // Для обычных элементов используем простые панели без блюра
-    container = ClipRRect(
+    return ClipRRect(
       borderRadius: borderRadiusTyped,
       child: container,
     );
-
-    return container;
   }
 }
 
-/// Кнопка с иконкой в стиле Telegram iOS
+/// Кнопка с иконкой с акцентом на глубину и паттерн фона.
 class GlassIconButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData icon;
   final double? iconSize;
   final Color? iconColor;
   final EdgeInsets? padding;
-  final String? tooltip;
   final double? borderRadius;
 
   const GlassIconButton({
@@ -92,13 +89,12 @@ class GlassIconButton extends StatelessWidget {
     this.iconSize,
     this.iconColor,
     this.padding,
-    this.tooltip,
     this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
-    final borderRadiusValue = borderRadius ?? 8.0;
+    final borderRadiusValue = borderRadius ?? 10.0;
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
 
     return Material(
@@ -107,15 +103,17 @@ class GlassIconButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: borderRadiusTyped,
         child: Container(
-          padding: padding ?? const EdgeInsets.all(8),
+          padding: padding ?? const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
             borderRadius: borderRadiusTyped,
+            color: Colors.white.withOpacity(0.06),
+            border: Border.all(color: Colors.white.withOpacity(0.18)),
+            image: _backgroundPattern,
           ),
           child: Icon(
             icon,
             size: iconSize ?? 20,
-            color: iconColor ?? Colors.white.withOpacity(0.9),
+            color: iconColor ?? Colors.white,
           ),
         ),
       ),
@@ -123,7 +121,7 @@ class GlassIconButton extends StatelessWidget {
   }
 }
 
-/// Кнопка в стиле Telegram iOS
+/// Аккуратные кнопки, адаптированные под темный паттерн.
 class GlassButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Widget child;
@@ -149,7 +147,7 @@ class GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
-    final borderRadiusValue = borderRadius ?? 12.0;
+    final borderRadiusValue = borderRadius ?? 14.0;
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
     final isEnabled = enabled && onPressed != null;
 
@@ -161,31 +159,28 @@ class GlassButton extends StatelessWidget {
         splashColor: isEnabled ? Colors.white.withOpacity(0.1) : Colors.transparent,
         highlightColor: isEnabled ? Colors.white.withOpacity(0.05) : Colors.transparent,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
           constraints: BoxConstraints(
             minWidth: minWidth ?? 64,
-            minHeight: minHeight ?? 44,
+            minHeight: minHeight ?? 48,
             maxWidth: double.infinity,
-            maxHeight: 56,
+            maxHeight: 60,
           ),
-          padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: padding ?? const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
-            color: backgroundColor ?? 
-                (isEnabled 
-                    ? primaryColor.withOpacity(0.15)
-                    : Colors.white.withOpacity(0.05)),
+            color: backgroundColor ??
+                (isEnabled ? primaryColor.withOpacity(0.2) : Colors.white.withOpacity(0.04)),
             borderRadius: borderRadiusTyped,
             border: Border.all(
-              color: isEnabled 
-                  ? Colors.white.withOpacity(0.12)
-                  : Colors.white.withOpacity(0.05),
-              width: 0.5,
+              color: isEnabled ? Colors.white.withOpacity(0.2) : Colors.white.withOpacity(0.08),
+              width: 0.8,
             ),
+            image: _backgroundPattern,
           ),
           child: DefaultTextStyle(
             style: TextStyle(
-              color: Colors.white.withOpacity(isEnabled ? 1.0 : 0.4),
+              color: Colors.white.withOpacity(isEnabled ? 1.0 : 0.5),
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -209,7 +204,7 @@ Future<T?> showGlassBottomSheet<T>({
     context: context,
     isScrollControlled: isScrollControlled,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.black.withOpacity(0.4),
+    barrierColor: Colors.black.withOpacity(0.6),
     builder: (ctx) => _GlassDraggableSheet(
       builder: builder,
       minChildSize: minChildSize,
@@ -224,6 +219,7 @@ class _GlassDraggableSheet extends StatelessWidget {
   final double maxChildSize;
   final double initialChildSize;
   final WidgetBuilder builder;
+
   const _GlassDraggableSheet({
     required this.builder,
     required this.minChildSize,
@@ -239,30 +235,29 @@ class _GlassDraggableSheet extends StatelessWidget {
       maxChildSize: maxChildSize,
       expand: false,
       builder: (context, scrollController) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+        margin: const EdgeInsets.symmetric(horizontal: 0),
         decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          color: const Color(0xFF1C1C1E), // Telegram iOS стиль
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          color: Colors.black.withOpacity(0.75),
+          image: _backgroundPattern,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: const Offset(0, -4),
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 28,
+              offset: const Offset(0, -8),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar в стиле iOS
             Container(
               margin: const EdgeInsets.only(top: 8, bottom: 4),
-              width: 36,
+              width: 42,
               height: 5,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2.5),
-                color: Colors.white.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(3),
+                color: Colors.white.withOpacity(0.35),
               ),
             ),
             Flexible(

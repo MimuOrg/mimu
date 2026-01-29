@@ -10,6 +10,7 @@ import 'package:mimu/data/settings_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
+import 'package:mimu/data/services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -27,6 +28,8 @@ class _AuthScreenState extends State<AuthScreen> {
   // Login fields
   final TextEditingController _loginPrIdController = TextEditingController();
   final TextEditingController _loginPasswordController = TextEditingController();
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
   String? _loginError;
   bool _isLoginValid = false;
   
@@ -170,6 +173,39 @@ class _AuthScreenState extends State<AuthScreen> {
         repeatError,
       ].every((e) => e == null);
     });
+  }
+
+  void _handleLogin() async {
+    if (!_isLoginValid) return;
+
+    setState(() {
+      _isLoading = true;
+      _loginError = null;
+    });
+
+    HapticFeedback.mediumImpact();
+
+    final result = await _authService.loginWithPassword(
+      publicId: _loginPrIdController.text.trim(),
+      password: _loginPasswordController.text,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (result.success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        NavigationService.createSlideTransitionRoute(const ShellUI()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _loginError = result.error ?? 'Неверный логин или пароль.';
+      });
+    }
   }
 
   Widget _buildCodeVerification() {
@@ -359,30 +395,28 @@ class _AuthScreenState extends State<AuthScreen> {
               borderRadius: BorderRadius.circular(12),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: _isLoginValid
-                    ? () {
-                        _recomputeLoginValidity();
-                        if (!_isLoginValid) return;
-                        HapticFeedback.mediumImpact();
-                        setState(() {
-                          _isLogin = true;
-                          _expectedCode = '123456';
-                          _showCodeVerification = true;
-                        });
-                      }
-                    : null,
+                onTap: _isLoginValid && !_isLoading ? _handleLogin : null,
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: const Center(
-                    child: Text(
-                      "Войти",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  child: Center(
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            "Войти",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
               ),

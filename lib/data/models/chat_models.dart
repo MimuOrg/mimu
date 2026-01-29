@@ -16,6 +16,10 @@ class ChatMessage {
   final bool isEdited;
   final Map<String, int> reactions;
   final String? editedText;
+  /// View count (from metadata.view_count on server)
+  final int viewCount;
+  /// TTL in seconds for secret/self-destruct (from metadata)
+  final int? ttlSeconds;
 
   const ChatMessage({
     required this.id,
@@ -29,6 +33,8 @@ class ChatMessage {
     this.isEdited = false,
     this.reactions = const {},
     this.editedText,
+    this.viewCount = 0,
+    this.ttlSeconds,
   });
 
   ChatMessage copyWith({
@@ -43,6 +49,8 @@ class ChatMessage {
     bool? isEdited,
     Map<String, int>? reactions,
     String? editedText,
+    int? viewCount,
+    int? ttlSeconds,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -56,6 +64,8 @@ class ChatMessage {
       isEdited: isEdited ?? this.isEdited,
       reactions: reactions ?? this.reactions,
       editedText: editedText ?? this.editedText,
+      viewCount: viewCount ?? this.viewCount,
+      ttlSeconds: ttlSeconds ?? this.ttlSeconds,
     );
   }
 
@@ -72,6 +82,8 @@ class ChatMessage {
       'isEdited': isEdited,
       'reactions': reactions,
       'editedText': editedText,
+      'viewCount': viewCount,
+      'ttlSeconds': ttlSeconds,
     };
   }
 
@@ -91,9 +103,14 @@ class ChatMessage {
       isEdited: json['isEdited'] as bool? ?? false,
       reactions: (json['reactions'] as Map?)?.map((key, value) => MapEntry(key.toString(), (value as num).toInt())) ?? const {},
       editedText: json['editedText'] as String?,
+      viewCount: (json['viewCount'] as num?)?.toInt() ?? (json['metadata'] is Map ? ((json['metadata'] as Map)['view_count'] as num?)?.toInt() ?? 0 : 0),
+      ttlSeconds: (json['ttlSeconds'] as num?)?.toInt() ?? (json['metadata'] is Map ? ((json['metadata'] as Map)['ttl_seconds'] as num?)?.toInt() : null),
     );
   }
 }
+
+/// Role in channel/group: only owner/admin can post in channels
+enum ParticipantRole { owner, admin, member, restricted }
 
 class ChatThread {
   final String id;
@@ -104,6 +121,17 @@ class ChatThread {
   final List<String> participantIds;
   final List<ChatMessage> messages;
   final DateTime updatedAt;
+  final String? description;
+  /// Public channel handle, e.g. @mimu_news; null = private
+  final String? username;
+  /// Cached subscriber count (channels/groups)
+  final int memberCount;
+  /// Private invite link token: t.mimu.app/join/{inviteToken}
+  final String? inviteToken;
+  /// Current user's role (for channels: only owner/admin can post)
+  final ParticipantRole? participantRole;
+  /// ID of pinned message (from API or set locally after pin)
+  final String? pinnedMessageId;
 
   const ChatThread({
     required this.id,
@@ -114,7 +142,18 @@ class ChatThread {
     required this.participantIds,
     required this.messages,
     required this.updatedAt,
+    this.description,
+    this.username,
+    this.memberCount = 0,
+    this.inviteToken,
+    this.participantRole,
+    this.pinnedMessageId,
   });
+
+  /// In channels, only owner/admin can post; members see Mute/Unmute
+  bool get canPostInChannel =>
+      chatType != ChatType.channel ||
+      (participantRole == ParticipantRole.owner || participantRole == ParticipantRole.admin);
 
   ChatThread copyWith({
     String? id,
@@ -125,6 +164,13 @@ class ChatThread {
     List<String>? participantIds,
     List<ChatMessage>? messages,
     DateTime? updatedAt,
+    String? description,
+    String? username,
+    int? memberCount,
+    String? inviteToken,
+    ParticipantRole? participantRole,
+    String? pinnedMessageId,
+    bool clearPinnedMessage = false,
   }) {
     return ChatThread(
       id: id ?? this.id,
@@ -135,6 +181,12 @@ class ChatThread {
       participantIds: participantIds ?? this.participantIds,
       messages: messages ?? this.messages,
       updatedAt: updatedAt ?? this.updatedAt,
+      description: description ?? this.description,
+      username: username ?? this.username,
+      memberCount: memberCount ?? this.memberCount,
+      inviteToken: inviteToken ?? this.inviteToken,
+      participantRole: participantRole ?? this.participantRole,
+      pinnedMessageId: clearPinnedMessage ? null : (pinnedMessageId ?? this.pinnedMessageId),
     );
   }
 
@@ -148,10 +200,23 @@ class ChatThread {
       'participantIds': participantIds,
       'messages': messages.map((m) => m.toJson()).toList(),
       'updatedAt': updatedAt.toIso8601String(),
+      'description': description,
+      'username': username,
+      'memberCount': memberCount,
+      'inviteToken': inviteToken,
+      'participantRole': participantRole?.name,
+      'pinnedMessageId': pinnedMessageId,
     };
   }
 
   factory ChatThread.fromJson(Map<String, dynamic> json) {
+    ParticipantRole? role;
+    final roleStr = json['participantRole'] as String?;
+    if (roleStr != null) {
+      for (final r in ParticipantRole.values) {
+        if (r.name == roleStr) { role = r; break; }
+      }
+    }
     return ChatThread(
       id: json['id'] as String,
       title: json['title'] as String,
@@ -168,6 +233,12 @@ class ChatThread {
           .map((m) => ChatMessage.fromJson(Map<String, dynamic>.from(m as Map)))
           .toList(),
       updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+      description: json['description'] as String?,
+      username: json['username'] as String?,
+      memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+      inviteToken: json['inviteToken'] as String?,
+      participantRole: role,
+      pinnedMessageId: json['pinnedMessageId'] as String?,
     );
   }
 

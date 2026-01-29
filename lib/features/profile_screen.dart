@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mimu/data/user_api.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userName;
@@ -48,12 +49,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadContactState() async {
     final store = context.read<ChatStore>();
     final contact = store.contactByName(widget.userName) ?? store.contactById(widget.userName);
-    setState(() {
-      _contactId = contact?.id;
-      _displayName = contact?.name ?? widget.userName;
-      _isBlocked = contact != null ? store.isContactBlocked(contact.id) : false;
-      _isIgnored = contact != null ? store.isContactIgnored(contact.id) : false;
-    });
+    final publicId = _contactId ?? widget.userName;
+    try {
+      final profile = await UserApi().getProfile(publicId);
+      final isOnline = profile['is_online'] as bool? ?? false;
+      final lastSeen = profile['last_seen'] as String?;
+      if (mounted) {
+        setState(() {
+          _status = isOnline ? 'в сети' : (lastSeen != null ? 'был(а) недавно' : 'не в сети');
+        });
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _contactId = contact?.id;
+        _displayName = contact?.name ?? widget.userName;
+        _isBlocked = contact != null ? store.isContactBlocked(contact.id) : false;
+        _isIgnored = contact != null ? store.isContactIgnored(contact.id) : false;
+      });
+    }
   }
 
   @override
@@ -280,6 +294,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       () => _showBlockDialog(context),
                       isDestructive: !_isBlocked,
                     ),
+                    const Divider(height: 0.5, thickness: 0.5, indent: 56),
+                    _actionRow(
+                      context,
+                      CupertinoIcons.exclamationmark_triangle_fill,
+                      'Пожаловаться',
+                      () => _showReportDialog(context),
+                      isDestructive: true,
+                    ),
                   ],
                 ),
               ),
@@ -496,17 +518,97 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () {
-              if (_contactId != null) {
-                context.read<ChatStore>().setContactBlocked(_contactId!, !_isBlocked);
+            onPressed: () async {
+              final id = _contactId ?? widget.userName;
+              try {
+                if (_isBlocked) {
+                  await UserApi().unblockUser(id);
+                } else {
+                  await UserApi().blockUser(publicId: id);
+                }
+                if (_contactId != null) {
+                  context.read<ChatStore>().setContactBlocked(_contactId!, !_isBlocked);
+                }
+                if (mounted) {
+                  setState(() => _isBlocked = !_isBlocked);
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(_isBlocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован')),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e')),
+                  );
+                }
               }
-              setState(() => _isBlocked = !_isBlocked);
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(_isBlocked ? 'Пользователь заблокирован' : 'Пользователь разблокирован')),
-              );
             },
             child: Text(_isBlocked ? 'Разблокировать' : 'Заблокировать'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportDialog(BuildContext context) {
+    final reasonController = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => buildCupertinoDialog(
+        context: context,
+        title: 'Пожаловаться',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Опишите причину жалобы (опционально). Контент профиля будет отправлен модератору.',
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            CupertinoTextField(
+              controller: reasonController,
+              placeholder: 'Причина',
+              style: const TextStyle(color: CupertinoColors.white),
+              decoration: BoxDecoration(
+                color: CupertinoColors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              final reason = reasonController.text.trim();
+              final decryptedContent = 'Жалоба на пользователя: ${widget.userName}. ${reason.isNotEmpty ? "Причина: $reason" : ""}';
+              try {
+                await UserApi().report(decryptedContent: decryptedContent, reason: reason.isNotEmpty ? reason : null);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Жалоба отправлена')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Отправить'),
           ),
         ],
       ),

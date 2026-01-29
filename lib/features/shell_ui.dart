@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:mimu/data/chat_store.dart';
+import 'package:mimu/data/message_queue.dart';
 import 'package:mimu/data/models/chat_models.dart';
 import 'package:mimu/features/settings_hub.dart';
 import 'package:mimu/shared/animated_widgets.dart';
@@ -25,6 +26,14 @@ import 'package:mimu/features/create_entities.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
+const _secondBackgroundPattern = DecorationImage(
+  image: AssetImage('assets/images/secondb.png'),
+  fit: BoxFit.cover,
+  repeat: ImageRepeat.repeat,
+  colorFilter: ColorFilter.mode(Colors.white24, BlendMode.srcOver),
+);
+
+const Duration _kAnimationDuration = Duration(milliseconds: 150);
 class BannerManager {
   static final BannerManager _instance = BannerManager._internal();
   factory BannerManager() => _instance;
@@ -87,9 +96,9 @@ class BannerManager {
             .slideY(
                 begin: -0.7,
                 end: 0,
-                duration: const Duration(milliseconds: 360),
+                duration: _kAnimationDuration,
                 curve: Curves.easeOutBack)
-            .fadeIn(),
+            .fadeIn(duration: _kAnimationDuration),
       ),
     );
     overlay.insert(_activeEntry!);
@@ -145,7 +154,13 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
   void initState() {
     super.initState();
     _pageController = PageController();
-    // Убрано приветственное сообщение
+    MessageQueue.onMessageSendFailed = (chatId, messageId) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось отправить сообщение')),
+        );
+      }
+    };
   }
 
   @override
@@ -167,7 +182,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => AnimatedPadding(
-        duration: const Duration(milliseconds: 340),
+        duration: _kAnimationDuration,
         curve: Curves.easeOutQuart,
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -221,7 +236,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
               child: IgnorePointer(
                 ignoring: !_isSearchActive,
                 child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 200),
+                  duration: _kAnimationDuration,
                   opacity: _isSearchActive ? 1 : 0,
                   curve: Curves.easeOutCubic,
                   child: Container(color: Colors.black.withOpacity(0.5)),
@@ -247,7 +262,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
                         children: [
                           Expanded(
                             child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 320),
+                              duration: _kAnimationDuration,
                               layoutBuilder: (currentChild, previousChildren) {
                                 return Stack(
                                   alignment: Alignment.center,
@@ -324,7 +339,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
                           ),
                           const SizedBox(width: 12),
                           AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 280),
+                            duration: _kAnimationDuration,
                             transitionBuilder: (child, animation) =>
                                 FadeTransition(opacity: animation, child: child),
                             child: _buildSearchButton(),
@@ -428,10 +443,9 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
     setState(() {
       _currentIndex = index;
     });
-    final isOptimized = SettingsService.getOptimizeMimu();
     _pageController.animateToPage(
       index,
-      duration: Duration(milliseconds: isOptimized ? 250 : 300),
+      duration: _kAnimationDuration,
       curve: Curves.easeInOutCubic,
     );
   }

@@ -23,10 +23,18 @@ import 'package:mimu/features/call_screen.dart';
 import 'package:mimu/features/group_settings_screen.dart';
 import 'package:mimu/app/routes.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/gestures.dart';
 import 'package:mimu/data/settings_service.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
 import 'package:mimu/app/navigation_service.dart';
 import 'package:mimu/features/profile_screen.dart';
+import 'package:mimu/data/services/websocket_service.dart';
+import 'package:mimu/features/pinned_message_widget.dart';
+import 'package:mimu/features/disappearing_timer_widget.dart';
+import 'package:mimu/data/services/secure_window_service.dart';
+import 'package:mimu/data/user_api.dart';
+import 'package:mimu/data/message_api.dart';
+import 'package:mimu/data/sync_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatId;
@@ -49,12 +57,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   String? _replyToMessageText;
   final ScrollController _scrollController = ScrollController();
   final Set<String> _sentFiles = {}; // Предотвращение повторной отправки
+  final Set<String> _unpinnedChatIds = {}; // Скрыть пин после открепления до перезагрузки
   Timer? _recordTimer;
   late AnimationController _avatarGlowController;
   bool _isChatSearchActive = false;
   final TextEditingController _chatSearchController = TextEditingController();
   bool _isDialogOpen = false; // Отслеживание открытых диалогов/меню
   bool _isEmojiPanelVisible = false; // Видимость панели эмодзи
+  Timer? _typingTimer;
+  final WebSocketService _wsService = WebSocketService();
+  StreamSubscription? _wsSubscription;
+  bool _secureWindowSet = false; // FLAG_SECURE для секретного чата
 
   @override
   void initState() {
@@ -63,17 +76,53 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
+    _initWebSocket();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final store = context.read<ChatStore>();
+      SyncService().syncChat(store, widget.chatId);
+    });
+  }
+
+  Future<void> _initWebSocket() async {
+    try {
+      await _wsService.connect();
+      _wsSubscription = _wsService.inboundEvents.listen((event) {
+        if (event['type'] == 'typing' && 
+            event['chat_id'] == widget.chatId) {
+          setState(() {
+            _isTyping = event['is_typing'] == true;
+          });
+        }
+      });
+    } catch (e) {
+      // WebSocket connection failed, typing indicators won't work
+    }
   }
 
   @override
   void dispose() {
+    if (_secureWindowSet) {
+      SecureWindowService.setSecureWindow(false);
+    }
     _recordTimer?.cancel();
+    _typingTimer?.cancel();
+    _wsSubscription?.cancel();
     _avatarGlowController.dispose();
     _player.dispose();
     _recorder.dispose();
     _scrollController.dispose();
     _chatSearchController.dispose();
     super.dispose();
+  }
+
+  void _sendTypingEvent(String chatId, String? toUserId, bool isTyping) {
+    if (toUserId == null || chatId.isEmpty) return;
+    _wsService.sendTyping(
+      chatId: chatId,
+      toUserId: toUserId,
+      isTyping: isTyping,
+    );
   }
 
   Future<void> _addTextMessage(String text) async {
@@ -414,6 +463,66 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _showReportMessageDialog(BuildContext context, ChatMessage message, String chatId) {
+    final reasonController = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Пожаловаться на сообщение'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Укажите причину жалобы:'),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: reasonController,
+                placeholder: 'Причина (необязательно)',
+                maxLines: 3,
+                autofocus: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              final reason = reasonController.text.trim();
+              try {
+                // Используем расшифрованный текст сообщения
+                final decryptedContent = message.text ?? '[не удалось расшифровать]';
+                await UserApi().report(
+                  messageId: message.id,
+                  chatId: widget.chatId,
+                  decryptedContent: decryptedContent,
+                  reason: reason.isNotEmpty ? reason : null,
+                );
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Жалоба отправлена')),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ошибка: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Отправить'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _forwardMessage(ChatMessage message) {
     final parentContext = context;
     _showAnimatedBottomSheet(
@@ -521,6 +630,13 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return Consumer<ChatStore>(
       builder: (context, chatStore, _) {
         final chat = chatStore.threadById(widget.chatId);
+        // Секретный чат: запрет скриншотов (Android FLAG_SECURE)
+        if (chat != null && chat.chatType == ChatType.secret && !_secureWindowSet) {
+          _secureWindowSet = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            SecureWindowService.setSecureWindow(true);
+          });
+        }
         if (chat == null) {
           return Scaffold(
             appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
@@ -590,9 +706,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Text(chat.title,
-                          style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(chat.title,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                            if (_isTyping)
+                              Text(
+                                'печатает...',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
             centerTitle: true,
@@ -641,6 +774,51 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
               ),
               Column(
                 children: [
+                  if (chatStore.isSyncingChat(widget.chatId))
+                    const LinearProgressIndicator(
+                      backgroundColor: CupertinoColors.systemGrey5,
+                      valueColor: AlwaysStoppedAnimation<Color>(CupertinoColors.activeBlue),
+                    ),
+                  // Закрепленное сообщение (если есть)
+                  Consumer<ChatStore>(
+                    builder: (context, store, _) {
+                      if (_unpinnedChatIds.contains(widget.chatId)) return const SizedBox.shrink();
+                      final chat = store.threadById(widget.chatId);
+                      if (chat == null) return const SizedBox.shrink();
+                      final List<ChatMessage> candidates = chat.pinnedMessageId != null
+                          ? chat.messages.where((m) => m.id == chat.pinnedMessageId).toList()
+                          : (chat.messages.isNotEmpty ? [chat.messages.first] : <ChatMessage>[]);
+                      if (candidates.isEmpty) return const SizedBox.shrink();
+                      final pinnedMessage = candidates.first;
+                      return PinnedMessageWidget(
+                        message: pinnedMessage,
+                        onTap: () {
+                          final index = reversedMessages.indexWhere((m) => m.id == pinnedMessage.id);
+                          if (index != -1) {
+                            _scrollController.animateTo(
+                              index * 100.0,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          }
+                        },
+                        onUnpin: () async {
+                          try {
+                            await MessageApi().unpinMessage(widget.chatId);
+                            if (!mounted) return;
+                            await context.read<ChatStore>().setPinnedMessage(widget.chatId, null);
+                            setState(() => _unpinnedChatIds.add(widget.chatId));
+                          } catch (_) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Не удалось открепить')),
+                              );
+                            }
+                          }
+                        },
+                      );
+                    },
+                  ),
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollController,
@@ -648,6 +826,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.only(top: 96, bottom: 72),
                       itemCount: totalItems,
+                      key: const PageStorageKey('chat_messages'),
                       itemBuilder: (context, index) {
                         if (_isTyping && index == 0) {
                           return _TypingIndicator();
@@ -665,6 +844,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                         message.timestamp.day);
 
                         return Column(
+                          key: ValueKey(message.id), // Оптимизация: уникальный key для каждого сообщения
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             if (showDate) _buildDateHeader(message.timestamp),
@@ -720,6 +900,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                         opacity: 0.92,
                                         child: _MessageBubble(
                                           message: message,
+                                          chatId: widget.chatId,
                                           onEdit: _editMessage,
                                           onDelete: _deleteMessage,
                                           onReaction: _addReaction,
@@ -730,6 +911,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                   ),
                                   child: _MessageBubble(
                                     message: message,
+                                    chatId: widget.chatId,
                                     onEdit: _editMessage,
                                     onDelete: _deleteMessage,
                                     onReaction: _addReaction,
@@ -793,25 +975,47 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                                 ),
                               ),
                             DragTarget<ChatMessage>(
-                                  builder: (context, candidate, rejected) =>
-                                      _MessageInputField(
-                                    onSendText: _addTextMessage,
-                                    onTypingChanged: (typing) =>
-                                        setState(() => _isTyping = typing),
-                                    onPickImage: () {
-                                      _showImagePicker(ImageSource.gallery);
-                                    },
-                                    onToggleRecord: _onToggleRecord,
-                                    replyToMessageId: _replyToMessageId,
-                                    replyToMessageText: _replyToMessageText,
-                                    onCancelReply: () {
-                                      setState(() {
-                                        _replyToMessageId = null;
-                                        _replyToMessageText = null;
-                                      });
-                                    },
-                                    enabled: !isBlocked,
-                                  ),
+                                  builder: (context, candidate, rejected) {
+                                    // В каналах обычные подписчики не пишут — показываем Mute/Unmute
+                                    if (chat.chatType == ChatType.channel && !chat.canPostInChannel) {
+                                      return _ChannelSubscriberBar(
+                                        onMuteUnmute: () async {
+                                          final muted = SettingsService.isChatMuted(widget.chatId);
+                                          await SettingsService.setChatMuted(widget.chatId, !muted);
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(!muted ? 'Уведомления отключены' : 'Уведомления включены'),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    }
+                                    return _MessageInputField(
+                                      onSendText: _addTextMessage,
+                                      onTypingChanged: (typing) {
+                                        final toUserId = !chat.isGroup && chat.participantIds.isNotEmpty
+                                            ? chat.participantIds.first
+                                            : null;
+                                        if (toUserId != null) {
+                                          _sendTypingEvent(widget.chatId, toUserId, typing);
+                                        }
+                                      },
+                                      onPickImage: () {
+                                        _showImagePicker(ImageSource.gallery);
+                                      },
+                                      onToggleRecord: _onToggleRecord,
+                                      replyToMessageId: _replyToMessageId,
+                                      replyToMessageText: _replyToMessageText,
+                                      onCancelReply: () {
+                                        setState(() {
+                                          _replyToMessageId = null;
+                                          _replyToMessageText = null;
+                                        });
+                                      },
+                                      enabled: !isBlocked,
+                                    );
+                                  },
                                   onAccept: (message) {
                                     _replyToMessage(message);
                                   },
@@ -1829,12 +2033,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
+  final String chatId;
   final Function(String, String)? onEdit;
   final Function(String)? onDelete;
   final Function(String, String)? onReaction;
   final Function(ChatMessage)? onForward;
   const _MessageBubble({
     required this.message,
+    required this.chatId,
     this.onEdit,
     this.onDelete,
     this.onReaction,
@@ -1858,7 +2064,9 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: alignment,
       child: GestureDetector(
-        onLongPress: () => _showMessageMenu(context),
+        onLongPress: () {
+          _showMessageMenu(context, chatId);
+        },
         child: Container(
           constraints: BoxConstraints(
               maxWidth: MediaQuery.of(context).size.width * 0.72),
@@ -1914,6 +2122,24 @@ class _MessageBubble extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              if (message.viewCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.eye, size: 12, color: Colors.white.withOpacity(0.8)),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${message.viewCount}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (message.isEdited)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
@@ -1938,7 +2164,8 @@ class _MessageBubble extends StatelessWidget {
               if (SettingsService.getShowTimestamps() &&
                   SettingsService.getShowReadReceipts())
                 const SizedBox(width: 4),
-              if (SettingsService.getShowReadReceipts())
+              // Индикатор статуса доставки
+              if (message.isMe && SettingsService.getShowReadReceipts())
                 Icon(
                   message.isRead ? Icons.done_all : Icons.done,
                   size: 14,
@@ -2045,7 +2272,13 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  void _showMessageMenu(BuildContext context) {
+  String _formatTimestamp(DateTime time) {
+    final hours = time.hour.toString().padLeft(2, '0');
+    final minutes = time.minute.toString().padLeft(2, '0');
+    return '$hours:$minutes';
+  }
+
+  void _showMessageMenu(BuildContext context, String chatId) {
     final chatScreenState = context.findAncestorStateOfType<_ChatScreenState>();
     chatScreenState?.setState(() => chatScreenState._isDialogOpen = true);
 
@@ -2108,6 +2341,45 @@ class _MessageBubble extends StatelessWidget {
                 });
               },
               child: const Text('Ответить'),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
+              try {
+                await MessageApi().pinMessage(chatId: chatId, messageId: message.id);
+                if (!context.mounted) return;
+                await context.read<ChatStore>().setPinnedMessage(chatId, message.id);
+                final ss = context.findAncestorStateOfType<_ChatScreenState>();
+                if (ss != null && ss.mounted) {
+                  ss.setState(() => ss._unpinnedChatIds.remove(chatId));
+                }
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Сообщение закреплено')),
+                  );
+                }
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Не удалось закрепить')),
+                  );
+                }
+              }
+            },
+            child: const Text('Закрепить'),
+          ),
+          if (!message.isMe && message.type == ChatMessageType.text)
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.of(context).pop();
+                chatScreenState?.setState(() {
+                  chatScreenState._isDialogOpen = false;
+                });
+                chatScreenState?._showReportMessageDialog(context, message, chatId);
+              },
+              child: const Text('Пожаловаться'),
             ),
           if (message.isMe)
             CupertinoActionSheetAction(
@@ -2218,6 +2490,65 @@ class _MessageBubble extends StatelessWidget {
       chatScreenState?.setState(() => chatScreenState._isDialogOpen = false);
     });
   }
+  void _showReportMessageDialog(BuildContext context, ChatMessage message, String chatId) {
+    final reasonController = TextEditingController();
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: const Text('Пожаловаться на сообщение'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Укажите причину жалобы:'),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: reasonController,
+                placeholder: 'Причина (необязательно)',
+                maxLines: 3,
+                autofocus: true,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Отмена'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () async {
+              final reason = reasonController.text.trim();
+              try {
+                // Используем расшифрованный текст сообщения
+                final decryptedContent = message.text ?? '[не удалось расшифровать]';
+                await UserApi().report(
+                  messageId: message.id,
+                  chatId: chatId,
+                  decryptedContent: decryptedContent,
+                  reason: reason.isNotEmpty ? reason : null,
+                );
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Жалоба отправлена')),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ошибка: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Отправить'),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildMessageContent(BuildContext context, ChatMessage message) {
     switch (message.type) {
@@ -2308,10 +2639,55 @@ class _MessageBubble extends StatelessWidget {
     }
   }
 
-  String _formatTimestamp(DateTime time) {
-    final hours = time.hour.toString().padLeft(2, '0');
-    final minutes = time.minute.toString().padLeft(2, '0');
-    return '$hours:$minutes';
+}
+
+/// Панель для подписчика канала: нет поля ввода, кнопка Mute/Unmute
+class _ChannelSubscriberBar extends StatelessWidget {
+  final VoidCallback onMuteUnmute;
+
+  const _ChannelSubscriberBar({required this.onMuteUnmute});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.bell_slash_fill, size: 18, color: Colors.white.withOpacity(0.9)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Только чтение. Уведомления:',
+                    style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9)),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: onMuteUnmute,
+                    child: const Text('Mute / Unmute'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -2343,6 +2719,7 @@ class _MessageInputFieldState extends State<_MessageInputField> {
   final TextEditingController _controller = TextEditingController();
   bool _wasTyping = false;
   String _selectedEmojiCategory = 'Часто используемые';
+  Timer? _typingTimeoutTimer;
 
   @override
   void initState() {
@@ -2354,6 +2731,7 @@ class _MessageInputFieldState extends State<_MessageInputField> {
 
   @override
   void dispose() {
+    _typingTimeoutTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -2373,12 +2751,22 @@ class _MessageInputFieldState extends State<_MessageInputField> {
   }
 
   void _onTextChanged(String text) {
-    // Убрано изменение состояния печатания - исправляет баг с тремя точками
-    // final isTyping = text.trim().isNotEmpty;
-    // if (isTyping != _wasTyping) {
-    //   widget.onTypingChanged?.call(isTyping);
-    //   _wasTyping = isTyping;
-    // }
+    final isTyping = text.trim().isNotEmpty;
+    if (isTyping != _wasTyping) {
+      widget.onTypingChanged?.call(isTyping);
+      _wasTyping = isTyping;
+      
+      // Отправляем typing: false через 5 секунд бездействия
+      _typingTimeoutTimer?.cancel();
+      if (isTyping) {
+        _typingTimeoutTimer = Timer(const Duration(seconds: 5), () {
+          if (mounted && _wasTyping) {
+            widget.onTypingChanged?.call(false);
+            _wasTyping = false;
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -2696,7 +3084,80 @@ class _FormattedText extends StatelessWidget {
   List<InlineSpan> _parse(String input, BuildContext context) {
     final List<InlineSpan> spans = [];
     int i = 0;
+    
+    // First pass: handle code blocks (```...```)
+    final codeBlockRegex = RegExp(r'```([\s\S]*?)```');
+    final codeBlocks = <Match>[];
+    codeBlockRegex.allMatches(input).forEach((match) {
+      codeBlocks.add(match);
+    });
+    
+    // Store code blocks positions
+    final codeBlockPositions = <int, String>{};
+    for (var match in codeBlocks) {
+      codeBlockPositions[match.start] = match.group(1) ?? '';
+    }
+    
     while (i < input.length) {
+      // Check if we're at a code block start
+      bool inCodeBlock = false;
+      for (var entry in codeBlockPositions.entries) {
+        if (i == entry.key) {
+          final codeContent = entry.value;
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: SelectableText(
+                codeContent,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 13,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ));
+          i += 3 + codeContent.length + 3; // ``` + content + ```
+          inCodeBlock = true;
+          break;
+        }
+      }
+      if (inCodeBlock) continue;
+      
+      // URL detection
+      final urlRegex = RegExp(r'https?://[^\s]+|mimu://[^\s]+');
+      final urlMatch = urlRegex.matchAsPrefix(input, i);
+      if (urlMatch != null) {
+        final url = urlMatch.group(0)!;
+        spans.add(TextSpan(
+          text: url,
+          style: TextStyle(
+            color: Colors.blue.shade300,
+            decoration: TextDecoration.underline,
+          ),
+          recognizer: () {
+            if (url.startsWith('mimu://')) return null;
+            final t = TapGestureRecognizer();
+            t.onTap = () async {
+              final uri = Uri.parse(url);
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            };
+            return t;
+          }(),
+        ));
+        i = urlMatch.end;
+        continue;
+      }
+      
       // Жирный текст: **text** или __text__
       if (input.startsWith('**', i) || input.startsWith('__', i)) {
         final marker = input.substring(i, i + 2);
@@ -2711,7 +3172,7 @@ class _FormattedText extends StatelessWidget {
         }
       }
       // Курсив: *text* или _text_
-      if (input.startsWith('*', i) && !input.startsWith('**', i)) {
+      if (input.startsWith('*', i) && !input.startsWith('**', i) && !input.startsWith('```', i)) {
         final end = input.indexOf('*', i + 1);
         if (end != -1 && (end == i + 1 || input[end - 1] != '*')) {
           final content = input.substring(i + 1, end);
@@ -2745,8 +3206,8 @@ class _FormattedText extends StatelessWidget {
           continue;
         }
       }
-      // Моноширинный: `text`
-      if (input.startsWith('`', i)) {
+      // Моноширинный: `text` (but not ```)
+      if (input.startsWith('`', i) && !input.startsWith('```', i)) {
         final end = input.indexOf('`', i + 1);
         if (end != -1) {
           final content = input.substring(i + 1, end);
