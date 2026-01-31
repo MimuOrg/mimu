@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
+import 'package:mimu/shared/app_styles.dart';
 
-/// Обертка для CupertinoAlertDialog с темно-фиолетовыми цветами и уменьшенными размерами
+/// Cupertino dialog. Solid surfaces, no blur (per .cursorrules).
 Widget buildCupertinoDialog({
   required BuildContext context,
   required String title,
@@ -11,29 +11,20 @@ Widget buildCupertinoDialog({
 }) {
   final theme = Theme.of(context);
   final primaryColor = theme.primaryColor;
-  final surfaceColor = theme.colorScheme.surface;
 
   return Container(
-    decoration: BoxDecoration(
-      color: surfaceColor.withOpacity(0.95),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: Colors.white.withOpacity(0.06),
-        width: 0.5,
-      ),
+    decoration: AppStyles.surfaceDecoration(
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.45),
-          blurRadius: 28,
-          offset: const Offset(0, 14),
+          color: Colors.black.withOpacity(0.5),
+          blurRadius: 24,
+          offset: const Offset(0, 8),
         ),
       ],
     ),
     child: ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-        child: Theme(
+      borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
+      child: Theme(
           data: theme.copyWith(
             cupertinoOverrideTheme: CupertinoThemeData(
               primaryColor: primaryColor,
@@ -79,11 +70,10 @@ Widget buildCupertinoDialog({
           ),
         ),
       ),
-    ),
   );
 }
 
-/// Обертка для CupertinoActionSheet с богатыми черными цветами, 90% прозрачности и минимальным блюром
+/// CupertinoActionSheet. Solid surface, no blur (per .cursorrules).
 Widget buildCupertinoActionSheet({
   required BuildContext context,
   String? title,
@@ -91,35 +81,22 @@ Widget buildCupertinoActionSheet({
   required List<CupertinoActionSheetAction> actions,
   CupertinoActionSheetAction? cancelButton,
 }) {
-  final primaryColor = Theme.of(context).primaryColor;
-  // Богатый черный вместо фиолетового
-  final richBlack = const Color(0xFF0A0A0A);
-  final sheetBackground = const Color(0xFF000000); // Чистый черный фон
-
   return ClipRRect(
-    borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 1.0, sigmaY: 1.0),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              sheetBackground.withOpacity(0.96),
-              sheetBackground.withOpacity(0.92),
-            ],
-          ),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.06),
-            width: 0.8,
-          ),
+    borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radiusStandard)),
+    child: Container(
+      decoration: BoxDecoration(
+        color: AppStyles.surfaceDeep,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radiusStandard)),
+        border: Border(
+          top: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+          left: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+          right: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
         ),
+      ),
         child: Theme(
           data: Theme.of(context).copyWith(
             cupertinoOverrideTheme: CupertinoThemeData(
-              primaryColor: richBlack,
+              primaryColor: Theme.of(context).primaryColor,
               brightness: Brightness.dark,
             ),
           ),
@@ -175,6 +152,5 @@ Widget buildCupertinoActionSheet({
           ),
         ),
       ),
-    ),
   );
 }

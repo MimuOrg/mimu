@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mimu/app/theme.dart';
-import 'package:mimu/data/settings_service.dart';
+import 'package:mimu/shared/app_styles.dart';
 
-const _backgroundPattern = DecorationImage(
-  image: AssetImage('assets/images/secondb.png'),
-  fit: BoxFit.cover,
-  repeat: ImageRepeat.repeat,
-  colorFilter: ColorFilter.mode(Colors.white24, BlendMode.srcOver),
-);
-
-/// Современный контейнер в стиле Telegram iOS, но без громоздкого блюра.
-/// Паттерн secondb.png и глубокие тени задают текстуру.
+/// Solid surface container. No glassmorphism. Per .cursorrules: "Strict Boxy Black".
 class GlassContainer extends StatelessWidget {
   final Widget child;
   final BoxDecoration? decoration;
@@ -37,12 +29,12 @@ class GlassContainer extends StatelessWidget {
     final borderRadiusValue = borderRadius ??
         (finalDecoration?.borderRadius is BorderRadius
             ? (finalDecoration!.borderRadius as BorderRadius).topLeft.x
-            : 16.0);
+            : AppStyles.radiusStandard);
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
 
     final bgColor = backgroundColor ??
         finalDecoration?.color ??
-        Colors.black.withOpacity(0.6);
+        AppStyles.surfaceDeep;
 
     final container = Container(
       margin: margin,
@@ -50,16 +42,15 @@ class GlassContainer extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: borderRadiusTyped,
-        image: _backgroundPattern,
         border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-          width: 0.6,
+          color: AppStyles.borderColor,
+          width: AppStyles.borderWidth,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 14,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -94,7 +85,7 @@ class GlassIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadiusValue = borderRadius ?? 10.0;
+    final borderRadiusValue = borderRadius ?? AppStyles.radiusStandard;
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
 
     return Material(
@@ -106,9 +97,8 @@ class GlassIconButton extends StatelessWidget {
           padding: padding ?? const EdgeInsets.all(10),
           decoration: BoxDecoration(
             borderRadius: borderRadiusTyped,
-            color: Colors.white.withOpacity(0.06),
-            border: Border.all(color: Colors.white.withOpacity(0.18)),
-            image: _backgroundPattern,
+            color: AppStyles.surfaceDeep,
+            border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
           ),
           child: Icon(
             icon,
@@ -147,7 +137,7 @@ class GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
-    final borderRadiusValue = borderRadius ?? 14.0;
+    final borderRadiusValue = borderRadius ?? AppStyles.radiusStandard;
     final borderRadiusTyped = BorderRadius.circular(borderRadiusValue);
     final isEnabled = enabled && onPressed != null;
 
@@ -159,8 +149,8 @@ class GlassButton extends StatelessWidget {
         splashColor: isEnabled ? Colors.white.withOpacity(0.1) : Colors.transparent,
         highlightColor: isEnabled ? Colors.white.withOpacity(0.05) : Colors.transparent,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
+          duration: AppStyles.animationDuration,
+          curve: AppStyles.animationCurve,
           constraints: BoxConstraints(
             minWidth: minWidth ?? 64,
             minHeight: minHeight ?? 48,
@@ -170,13 +160,12 @@ class GlassButton extends StatelessWidget {
           padding: padding ?? const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             color: backgroundColor ??
-                (isEnabled ? primaryColor.withOpacity(0.2) : Colors.white.withOpacity(0.04)),
+                (isEnabled ? primaryColor.withOpacity(0.2) : AppStyles.surfaceDeep),
             borderRadius: borderRadiusTyped,
             border: Border.all(
-              color: isEnabled ? Colors.white.withOpacity(0.2) : Colors.white.withOpacity(0.08),
-              width: 0.8,
+              color: AppStyles.borderColor,
+              width: AppStyles.borderWidth,
             ),
-            image: _backgroundPattern,
           ),
           child: DefaultTextStyle(
             style: TextStyle(
@@ -237,14 +226,18 @@ class _GlassDraggableSheet extends StatelessWidget {
       builder: (context, scrollController) => Container(
         margin: const EdgeInsets.symmetric(horizontal: 0),
         decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          color: Colors.black.withOpacity(0.75),
-          image: _backgroundPattern,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radiusStandard)),
+          color: AppStyles.surfaceDeep,
+          border: Border(
+            top: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+            left: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+            right: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.5),
-              blurRadius: 28,
-              offset: const Offset(0, -8),
+              blurRadius: 24,
+              offset: const Offset(0, -4),
             ),
           ],
         ),

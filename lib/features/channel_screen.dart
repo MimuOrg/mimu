@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 import 'package:mimu/shared/animated_widgets.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:mimu/app/theme.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/data/channel_service.dart';
 import 'package:mimu/data/settings_service.dart';
 import 'package:mimu/data/user_api.dart';
@@ -102,9 +102,10 @@ class _ChannelScreenState extends State<ChannelScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppStyles.backgroundOled,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppStyles.backgroundOled,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(CupertinoIcons.chevron_left),
@@ -144,31 +145,12 @@ class _ChannelScreenState extends State<ChannelScreen> {
             },
           ),
         ],
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
       ),
       body: Stack(
         children: [
-          // Background
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(themeProvider.backgroundImage ?? "assets/images/background_pattern.png"),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
-          ),
+          Container(color: AppStyles.backgroundOled),
           Column(
             children: [
-              const SizedBox(height: 80),
               if (_isSearchActive)
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -230,10 +212,6 @@ class _ChannelScreenState extends State<ChannelScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: GlassContainer(
                           padding: const EdgeInsets.all(16),
-                          decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-                            color: Theme.of(context).primaryColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -243,6 +221,7 @@ class _ChannelScreenState extends State<ChannelScreen> {
                                   color: Colors.white,
                                   fontSize: 16,
                                   height: 1.4,
+                                  fontFamily: AppStyles.fontFamily,
                                 ),
                               ),
                               const SizedBox(height: 8),

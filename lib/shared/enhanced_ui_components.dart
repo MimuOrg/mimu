@@ -1,15 +1,15 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mimu/app/theme.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 
-/// Богатая черная палитра для премиум дизайна
+/// Palette aligned with .cursorrules "Strict Boxy Black"
 class RichBlackPalette {
-  static const Color richBlack = Color(0xFF000000);
+  static const Color richBlack = AppStyles.backgroundOled;
   static const Color deepBlack = Color(0xFF050505);
-  static const Color charcoalBlack = Color(0xFF0A0A0A);
+  static const Color charcoalBlack = AppStyles.surfaceDeep;
   static const Color darkCharcoal = Color(0xFF0F0F0F);
   static const Color mediumBlack = Color(0xFF1A1A1A);
   static const Color lightBlack = Color(0xFF252525);
@@ -38,50 +38,33 @@ class RichBlackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget card = Container(
+    final card = Container(
       margin: margin ?? const EdgeInsets.all(8),
       padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: RichBlackPalette.charcoalBlack.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-          width: 0.5,
-        ),
+      decoration: AppStyles.surfaceDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.6),
-            blurRadius: elevation ?? 16,
-            spreadRadius: 0,
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: elevation ?? 12,
             offset: const Offset(0, 4),
           ),
           if (useGlow)
             BoxShadow(
-              color: RichBlackPalette.charcoalBlack.withOpacity(0.4),
-              blurRadius: 24,
-              spreadRadius: 2,
+              color: RichBlackPalette.charcoalBlack.withOpacity(0.3),
+              blurRadius: 16,
+              spreadRadius: 1,
             ),
         ],
       ),
       child: child,
     );
 
-    if (useGlow) {
-      card = ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-          child: card,
-        ),
-      );
-    }
-
     if (onTap != null) {
       return Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
           child: card,
         ),
       );
@@ -124,7 +107,7 @@ class _RichBlackButtonState extends State<RichBlackButton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: AppStyles.animationDuration,
     );
   }
 
@@ -173,13 +156,11 @@ class _RichBlackButtonState extends State<RichBlackButton>
               decoration: BoxDecoration(
                 color: widget.isOutlined
                     ? Colors.transparent
-                    : color.withOpacity(0.9),
-                borderRadius: BorderRadius.circular(12),
+                    : color,
+                borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
                 border: Border.all(
-                  color: widget.isOutlined
-                      ? Colors.white.withOpacity(0.2)
-                      : Colors.white.withOpacity(0.1),
-                  width: 1,
+                  color: AppStyles.borderColor,
+                  width: AppStyles.borderWidth,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -330,25 +311,23 @@ class RichBlackChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: AppStyles.animationDuration,
       curve: Curves.easeInOutCubic,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: isSelected
-                  ? RichBlackPalette.charcoalBlack.withOpacity(0.8)
-                  : RichBlackPalette.deepBlack.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(20),
+                  ? RichBlackPalette.charcoalBlack
+                  : AppStyles.surfaceDeep,
+              borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
               border: Border.all(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.1),
-                width: isSelected ? 1.5 : 0.5,
+                color: AppStyles.borderColor,
+                width: AppStyles.borderWidth,
               ),
               boxShadow: isSelected
                   ? [
@@ -413,14 +392,12 @@ class RichBlackListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected
-                ? RichBlackPalette.charcoalBlack.withOpacity(0.6)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: isSelected ? RichBlackPalette.charcoalBlack : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
           ),
           child: Row(
             children: [
@@ -577,7 +554,7 @@ class RichBlackPageRoute<T> extends PageRouteBuilder<T> {
               ),
             );
           },
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: const Duration(milliseconds: 200),
           reverseTransitionDuration: const Duration(milliseconds: 250),
         );
 }

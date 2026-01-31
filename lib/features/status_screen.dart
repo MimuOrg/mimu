@@ -1,9 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 import 'package:mimu/shared/animated_widgets.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -13,6 +11,7 @@ import 'package:mimu/data/settings_service.dart';
 import 'package:mimu/app/theme.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:mimu/shared/app_styles.dart';
 
 class StatusScreen extends StatefulWidget {
   const StatusScreen({super.key});
@@ -45,15 +44,23 @@ class _StatusScreenState extends State<StatusScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppStyles.backgroundOled,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppStyles.backgroundOled,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(CupertinoIcons.chevron_left),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Статусы'),
+        title: const Text(
+          'Статусы',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontFamily: AppStyles.fontFamily,
+            letterSpacing: AppStyles.letterSpacingSignature,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -65,20 +72,9 @@ class _StatusScreenState extends State<StatusScreen> {
             onPressed: _showStatusMenu,
           ),
         ],
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/background_pattern.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
+        color: AppStyles.backgroundOled,
         child: SafeArea(
           child: ListView(
             physics: const BouncingScrollPhysics(),
@@ -252,7 +248,6 @@ class _StatusScreenState extends State<StatusScreen> {
   Future<void> _addStatus() async {
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
       builder: (context) => buildCupertinoActionSheet(
         context: context,
         actions: [
@@ -347,7 +342,6 @@ class _StatusScreenState extends State<StatusScreen> {
   void _showStatusMenu() {
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
       builder: (context) => buildCupertinoActionSheet(
         context: context,
         actions: [
@@ -372,7 +366,6 @@ class _StatusScreenState extends State<StatusScreen> {
     final options = ['Все', 'Только контакты', 'Никто'];
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
       builder: (context) => buildCupertinoActionSheet(
         context: context,
         title: 'Кто может видеть мои статусы',
@@ -411,7 +404,7 @@ class _StatusScreenState extends State<StatusScreen> {
       context: context,
       barrierDismissible: true,
       builder: (context) => Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppStyles.backgroundOled,
         body: SafeArea(
           child: Stack(
             children: [

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mimu/data/settings_service.dart';
+import 'package:mimu/shared/app_styles.dart';
 
-// --- Theme Extension for Glass Effects ---
+// --- Theme Extension: Solid surfaces, no glassmorphism (per .cursorrules) ---
 @immutable
 class GlassTheme extends ThemeExtension<GlassTheme> {
   const GlassTheme({
@@ -164,7 +165,7 @@ class FontProvider extends ChangeNotifier {
       fontWeight: weight,
       fontStyle: style,
       color: resolvedColor,
-      letterSpacing: -0.0165 * size,
+      letterSpacing: AppStyles.letterSpacingSignature,
     );
   }
 }
@@ -173,12 +174,12 @@ class FontProvider extends ChangeNotifier {
 class MimuTheme {
   static final _primaryTextColor = Colors.white.withOpacity(0.95);
   static final _secondaryTextColor = Colors.white.withOpacity(0.7);
-  // Богатая черная палитра для премиум дизайна
-  static const _backgroundColor = Color(0xFF000000); // Чистый черный фон
-  static const _surfaceColor = Color(0xFF0A0A0A); // Богатый черный для поверхностей
-  static const _richBlack = Color(0xFF050505); // Богатый черный для акцентов
-  static const _deepBlack = Color(0xFF0F0F0F); // Глубокий черный для карточек
-  static const _charcoalBlack = Color(0xFF1A1A1A); // Угольно-черный для интерактивных элементов
+  // Strict Boxy Black: OLED #0B0B0B, Surface #111111 (per .cursorrules)
+  static const _backgroundColor = AppStyles.backgroundOled;
+  static const _surfaceColor = AppStyles.surfaceDeep;
+  static const _richBlack = Color(0xFF050505);
+  static const _deepBlack = Color(0xFF0F0F0F);
+  static const _charcoalBlack = Color(0xFF1A1A1A);
 
   static ThemeData darkTheme(Color accentColor, {FontProvider? fontProvider}) {
     TextTheme textTheme;
@@ -258,7 +259,7 @@ class MimuTheme {
         fontWeight: fontWeight,
         fontStyle: fontStyle,
         color: _primaryTextColor,
-        letterSpacing: -0.0165 * fontSize,
+        letterSpacing: AppStyles.letterSpacingSignature,
       ),
       bodyLarge: textTheme.bodyLarge?.copyWith(
         fontSize: (fontSize * 1.125).toDouble(),
@@ -318,7 +319,7 @@ class MimuTheme {
             fontSize: 16,
             fontWeight: FontWeight.w500,
             fontFamily: fontProvider?.font == 'Inter' ? null : GoogleFonts.getFont(fontProvider?.font ?? 'Inter').fontFamily,
-            letterSpacing: -0.0165 * 16,
+            letterSpacing: AppStyles.letterSpacingSignature,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           minimumSize: const Size(64, 40),
@@ -333,12 +334,12 @@ class MimuTheme {
             fontSize: 16,
             fontWeight: FontWeight.w600,
             fontFamily: fontProvider?.font == 'Inter' ? null : GoogleFonts.getFont(fontProvider?.font ?? 'Inter').fontFamily,
-            letterSpacing: -0.0165 * 16,
+            letterSpacing: AppStyles.letterSpacingSignature,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           minimumSize: const Size(88, 44),
           maximumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.radiusStandard)),
           elevation: 0,
         ),
       ),
@@ -354,31 +355,23 @@ class MimuTheme {
       popupMenuTheme: PopupMenuThemeData(
         color: _charcoalBlack,
         textStyle: TextStyle(color: _primaryTextColor, fontSize: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppStyles.radiusStandard)),
         elevation: 12,
         shadowColor: Colors.black.withOpacity(0.8),
       ),
       extensions: <ThemeExtension<dynamic>>[
         GlassTheme(
-          baseGlass: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.white.withOpacity(0.03),
-            border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5),
-          ),
+          baseGlass: AppStyles.surfaceDecoration(),
           interactiveGlass: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: Colors.transparent,
-            border: Border.all(color: Colors.white.withOpacity(0.05), width: 0.5),
+            borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
+            color: AppStyles.surfaceDeep,
+            border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
           ),
-          panelGlass: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: _richBlack.withOpacity(0.6),
-            border: Border.all(color: Colors.white.withOpacity(0.08), width: 0.5),
+          panelGlass: AppStyles.surfaceDecoration(
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.5),
                 blurRadius: 20,
-                spreadRadius: 0,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -429,59 +422,59 @@ class ThemeProvider extends ChangeNotifier {
     switch (themeName) {
       case 'Mimu Classical':
         _accentColor = charcoalBlack; // Богатый угольно-черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Winter Ocean':
         _accentColor = darkCharcoal; // Глубокий черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Melanholic':
         _accentColor = deepBlack; // Глубокий черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Dark Mode':
         _accentColor = richBlack; // Чистый черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Light Mode':
         _accentColor = mediumBlack; // Средний черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Amoled Black':
         _accentColor = richBlack; // Чистый черный для AMOLED
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Ocean Blue':
         _accentColor = charcoalBlack; // Угольно-черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Sunset Orange':
         _accentColor = darkCharcoal; // Глубокий черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Forest Green':
         _accentColor = deepBlack; // Глубокий черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Lavender Purple':
         _accentColor = mediumBlack; // Средний черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Rich Black':
         _accentColor = richBlack; // Богатый черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Charcoal':
         _accentColor = charcoalBlack; // Угольно-черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       case 'Deep Black':
         _accentColor = deepBlack; // Глубокий черный
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
         break;
       default:
         _accentColor = charcoalBlack; // Богатый угольно-черный по умолчанию
-        _backgroundImage = 'assets/images/background_pattern.png';
+        _backgroundImage = null;
     }
     notifyListeners();
   }

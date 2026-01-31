@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:mimu/shared/animated_widgets.dart';
@@ -7,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:mimu/app/theme.dart';
 import 'package:mimu/data/settings_service.dart';
 import 'package:flutter/services.dart';
+import 'package:mimu/shared/app_styles.dart';
 
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
@@ -52,28 +52,18 @@ class _PremiumScreenState extends State<PremiumScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: AppStyles.backgroundOled,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppStyles.backgroundOled,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(CupertinoIcons.back, weight: 700),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/background_pattern.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
+        color: AppStyles.backgroundOled,
         child: SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -98,7 +88,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     children: [
                       const Text(
                         'Купите Mimu Premium',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: AppStyles.fontFamily,
+                          letterSpacing: AppStyles.letterSpacingSignature,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Container(

@@ -6,7 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/chat_models.dart';
 import 'settings_service.dart';
+import 'user_service.dart';
 import 'message_api.dart';
+import 'package:mimu/features/calls/sender_key_crypto.dart';
+import 'package:mimu/data/services/signal_service.dart';
 import 'file_api.dart';
 import 'services/websocket_service.dart';
 import 'local_storage.dart';
@@ -320,9 +323,7 @@ class ChatStore extends ChangeNotifier {
 
     // Отправка на сервер (если сообщение от пользователя)
     if (message.isMe) {
-      _sendMessageToServer(chatId, finalMessage).catchError((error) {
-        ErrorHandler.logError(error, StackTrace.current, context: 'sendMessageToServer');
-      });
+      _sendMessageToServer(chatId, finalMessage);
     }
 
     // Simulated replies disabled; use real WS events when available.
@@ -350,29 +351,113 @@ class ChatStore extends ChangeNotifier {
   Future<void> _sendMessageToServer(String chatId, ChatMessage message) async {
     try {
       final messageApi = MessageApi();
+      final fileApi = FileApi();
       
+      // Get Chat Thread to determine type and participants
+      final threadIndex = _threads.indexWhere((t) => t.id == chatId);
+      if (threadIndex == -1) throw Exception('Chat thread not found');
+      final thread = _threads[threadIndex];
+
+      // Handle Group Key Distribution
+      if (thread.isGroup) {
+         try {
+           final distMessages = await MessageE2EE.ensureGroupSession(chatId, thread.participantIds);
+           for (final dist in distMessages) {
+             try {
+               await messageApi.sendMessage(
+                 chatId: dist.recipientId, 
+                 messageType: 'signal_distribution',
+                 encryptedPayloadBase64: dist.payload,
+               );
+             } catch (e) {
+               debugPrint('Failed to send key distribution to ${dist.recipientId}: $e');
+             }
+           }
+         } catch (e) {
+            debugPrint('Failed to distribute sender keys: $e');
+         }
+      }
+      
+      String? encryptedPayloadBase64;
+      String messageType = 'text';
+      Map<String, dynamic>? payload;
+
       if (message.type == ChatMessageType.text) {
-        final encrypted = await MessageE2EE.encryptJsonForChat(chatId, {
+        messageType = 'text';
+        payload = {
           't': 'text',
           'text': message.text ?? '',
-        });
+        };
+      } else if (message.type == ChatMessageType.image || 
+                 message.type == ChatMessageType.video || 
+                 message.type == ChatMessageType.voice ||
+                 message.type == ChatMessageType.file) {
+        
+        // Для медиа сначала загружаем файл, если есть путь
+        if (message.mediaPath != null) {
+          final file = File(message.mediaPath!);
+          if (await file.exists()) {
+            final uploadResult = await fileApi.uploadFile(
+              file: file,
+              type: message.type == ChatMessageType.image ? 'image' :
+                    message.type == ChatMessageType.video ? 'video' :
+                    message.type == ChatMessageType.voice ? 'voice' : 'file',
+            );
+            
+            if (uploadResult['success'] == true) {
+              final fileId = uploadResult['fileId'];
+              final url = uploadResult['url'];
+              
+              messageType = message.type.name;
+              payload = {
+                't': messageType,
+                'file_id': fileId,
+                'url': url,
+                'text': message.text, // Caption
+                'size': uploadResult['size'],
+                'mime_type': uploadResult['mimeType'],
+                'voice_duration': message.voiceDurationSeconds,
+              };
+            } else {
+               throw Exception('Failed to upload file: ${uploadResult['error']}');
+            }
+          }
+        }
+      }
+
+      if (payload != null) {
+        if (thread.isGroup) {
+          encryptedPayloadBase64 = await MessageE2EE.encryptJsonForGroup(chatId, payload);
+        } else {
+          // 1-to-1: Find peer ID
+          final myId = UserService.getUserId();
+          final peerId = thread.participantIds.firstWhere((id) => id != myId, orElse: () => 'unknown');
+          
+          if (peerId != 'unknown') {
+             encryptedPayloadBase64 = await MessageE2EE.encryptJsonForOneToOne(peerId, payload);
+          } else {
+             encryptedPayloadBase64 = await MessageE2EE.encryptJsonForOneToOne(chatId, payload);
+          }
+        }
+      }
+
+      if (encryptedPayloadBase64 != null) {
         final result = await messageApi.sendMessage(
           chatId: chatId,
-          messageType: 'text',
-          encryptedPayloadBase64: encrypted,
+          messageType: messageType,
+          encryptedPayloadBase64: encryptedPayloadBase64,
         );
         
         if (result['success'] != true) {
           throw Exception(result['error'] ?? 'Failed to send message');
         }
-        // Сервер возвращает message_id (UUID) — обновляем локальное сообщение, чтобы edit/delete работали
+        // Сервер возвращает message_id (UUID) — обновляем локальное сообщение
         final data = result['data'] as Map<String, dynamic>?;
         final serverMessageId = data?['message_id']?.toString();
         if (serverMessageId != null && serverMessageId.isNotEmpty) {
           _updateMessageId(chatId, message.id, serverMessageId);
         }
       }
-      // TODO: Обработка других типов сообщений
     } catch (error) {
       // Если ошибка сети, добавляем в очередь
       if (ErrorHandler.isNetworkError(error)) {
@@ -382,6 +467,8 @@ class ChatStore extends ChangeNotifier {
           messageData: {
             'type': message.type.name,
             'text': message.text,
+            'mediaPath': message.mediaPath,
+            'voiceDurationSeconds': message.voiceDurationSeconds,
             'replyToMessageId': null,
           },
         );
@@ -426,11 +513,29 @@ class ChatStore extends ChangeNotifier {
 
     // Отправка на сервер (один вызов)
     try {
-      final encrypted = await MessageE2EE.encryptJsonForChat(chatId, {
-        't': 'text',
-        'text': newText,
-      });
-      await MessageApi().editMessage(messageId: messageId, encryptedPayloadBase64: encrypted);
+      String encrypted;
+      if (_threads[index].isGroup) {
+        encrypted = await MessageE2EE.encryptJsonForGroup(chatId, {
+          't': 'text',
+          'text': newText,
+        });
+      } else {
+        final myId = UserService.getUserId();
+        final peerId = _threads[index].participantIds.firstWhere((id) => id != myId, orElse: () => 'unknown');
+        if (peerId != 'unknown') {
+          encrypted = await MessageE2EE.encryptJsonForOneToOne(peerId, {
+            't': 'text',
+            'text': newText,
+          });
+        } else {
+          // Self chat or unknown
+          encrypted = await MessageE2EE.encryptJsonForOneToOne(chatId, {
+            't': 'text',
+            'text': newText,
+          });
+        }
+      }
+      await MessageApi().editMessage(chatId: chatId, messageId: messageId, encryptedPayloadBase64: encrypted);
     } catch (error) {
       ErrorHandler.logError(error, StackTrace.current, context: 'editMessage');
     }
@@ -451,8 +556,10 @@ class ChatStore extends ChangeNotifier {
         timestamp: DateTime.now(),
       ),
     );
-    final effectiveMode = message.isMe ? mode : 'me';
+    // Если удаляем "для всех", но сообщение не мое - меняем на "только у меня"
+    final effectiveMode = (mode == 'all' && !message.isMe) ? 'me' : mode;
 
+    // Локальное удаление (скрытие)
     final messages = List<ChatMessage>.from(_threads[index].messages)
       ..removeWhere((m) => m.id == messageId);
     _threads[index] = _threads[index].copyWith(messages: messages);
@@ -479,15 +586,37 @@ class ChatStore extends ChangeNotifier {
       if (result['success'] == true && data is Map && data['messages'] is List) {
         final rawMessages = (data['messages'] as List).cast<dynamic>();
         final serverMessages = <ChatMessage>[];
+        
+        final threadIndex = _threads.indexWhere((t) => t.id == chatId);
+        final isGroup = threadIndex != -1 ? _threads[threadIndex].isGroup : false;
+
         for (final m in rawMessages) {
           if (m is! Map) continue;
           final id = (m['id'] ?? '').toString();
           final encryptedPayload = (m['encrypted_payload'] ?? '').toString();
+          final senderId = (m['sender_id'] ?? '').toString();
           final createdAt = DateTime.tryParse((m['created_at'] ?? '').toString()) ?? DateTime.now();
+          final isMe = senderId == UserService.getUserId();
 
           String? text;
           try {
-            final clear = await MessageE2EE.decryptJsonForChat(chatId, encryptedPayload);
+            final clear = await MessageE2EE.decryptJson(
+                chatId: chatId, 
+                senderId: senderId, 
+                encryptedPayloadBase64: encryptedPayload,
+                isGroup: isGroup
+            );
+            
+            if (clear['t'] == 'sender_key_dist') {
+                if (!isMe) {
+                   final content = clear['content'];
+                   final Map<String, dynamic> msgMap = content is String ? jsonDecode(content) : content;
+                   final msg = SenderKeyDistributionMessage.fromJson(msgMap);
+                   await SignalService().senderKeyCrypto.processDistributionMessage(msg);
+                }
+                continue; // Skip system message
+            }
+
             if (clear['t'] == 'text') {
               text = (clear['text'] ?? '').toString();
             }
@@ -500,13 +629,12 @@ class ChatStore extends ChangeNotifier {
               id: id.isEmpty ? 'srv-${createdAt.millisecondsSinceEpoch}' : id,
               type: ChatMessageType.text,
               text: text ?? '[encrypted]',
-              isMe: false,
+              isMe: isMe,
               timestamp: createdAt,
               isRead: true,
             ),
           );
         }
-        final threadIndex = _threads.indexWhere((t) => t.id == chatId);
         
         if (threadIndex != -1) {
           // Объединяем локальные и серверные сообщения
@@ -554,22 +682,36 @@ class ChatStore extends ChangeNotifier {
   Future<void> addReaction(String chatId, String messageId, String emoji) async {
     final index = _threads.indexWhere((element) => element.id == chatId);
     if (index == -1) return;
+    
+    bool isAdding = false;
+    
     final messages = _threads[index].messages.map((message) {
       if (message.id != messageId) return message;
       final updatedReactions = Map<String, int>.from(message.reactions);
       final currentCount = updatedReactions[emoji] ?? 0;
       if (currentCount > 0) {
         updatedReactions.remove(emoji);
-        // Server reactions API not implemented; local-only for now.
+        isAdding = false;
       } else {
         updatedReactions[emoji] = 1;
-        // Server reactions API not implemented; local-only for now.
+        isAdding = true;
       }
       return message.copyWith(reactions: updatedReactions);
     }).toList();
     _threads[index] = _threads[index].copyWith(messages: messages);
     await _persistThreads();
     notifyListeners();
+
+    try {
+      if (isAdding) {
+        await MessageApi().addReaction(messageId: messageId, emoji: emoji);
+      } else {
+        await MessageApi().removeReaction(messageId: messageId, emoji: emoji);
+      }
+    } catch (e) {
+      // Revert local change on error if needed, or just log
+      ErrorHandler.logError(e, StackTrace.current, context: 'addReaction');
+    }
   }
 
   Future<void> updateChatAvatar(String chatId, String avatarAsset) async {

@@ -242,6 +242,27 @@ class CryptoAuthService {
     return keyPair;
   }
 
+  /// Derive X25519 Identity Key for Signal Protocol from the same mnemonic
+  /// Uses the second 32 bytes of the PBKDF2 output (bytes 32-64)
+  Uint8List deriveSignalIdentityKey() {
+    if (_currentMnemonic == null) {
+      throw StateError('No mnemonic available. Login or register first.');
+    }
+    
+    // Re-run PBKDF2 (same as in _deriveKeysFromMnemonic)
+    final normalizedMnemonic = _currentMnemonic!.trim().toLowerCase();
+    final salt = Uint8List.fromList(utf8.encode('mnemonic'));
+
+    final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA512Digest(), 128));
+    pbkdf2.init(Pbkdf2Parameters(salt, 2048, 64));
+
+    final seed = pbkdf2.process(Uint8List.fromList(utf8.encode(normalizedMnemonic)));
+    
+    // Use second 32 bytes for X25519 seed (Signal Identity Key)
+    // First 32 bytes are for Ed25519 (Auth Key)
+    return Uint8List.fromList(seed.sublist(32, 64));
+  }
+
   /// Generate keys from current mnemonic (after generateMnemonic was called)
   CryptoKeyPair generateKeys() {
     if (_currentMnemonic == null || _currentLanguage == null) {
@@ -322,20 +343,33 @@ class CryptoAuthService {
   Future<CryptoAuthResponse> register({
     required String displayName,
     String? language,
+    Map<String, dynamic>? preKeys,
   }) async {
     if (_currentKeyPair == null) {
       throw StateError('No key pair available. Generate keys first.');
     }
 
+    final body = <String, dynamic>{
+      'public_key': _currentKeyPair!.publicKeyBase64,
+      'fingerprint': _currentKeyPair!.fingerprint,
+      'display_name': displayName,
+      'language': language ?? 'en',
+    };
+
+    if (preKeys != null) {
+      body.addAll(preKeys);
+      // We also need to send the X25519 identity key if we are setting up Signal
+      // deriveSignalIdentityKey() returns Uint8List, we need base64
+      final identityKey = deriveSignalIdentityKey();
+      body['identity_key'] = base64Encode(identityKey);
+      body['signing_public_key'] = _currentKeyPair!.publicKeyBase64; // Redundant but consistent
+      body['registration_id'] = 12345; // TODO: Generate random ID
+    }
+
     final response = await http.post(
       Uri.parse('${ServerConfig.baseUrl}/auth/register-crypto'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'public_key': _currentKeyPair!.publicKeyBase64,
-        'fingerprint': _currentKeyPair!.fingerprint,
-        'display_name': displayName,
-        'language': language ?? 'en',
-      }),
+      body: jsonEncode(body),
     );
 
     if (response.statusCode == 200 || response.statusCode == 201) {

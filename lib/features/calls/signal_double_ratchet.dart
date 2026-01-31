@@ -15,16 +15,59 @@ import 'signal_crypto.dart';
 /// - X3DH initial key exchange (using PreKey Bundle from server)
 /// 
 /// This uses the same session as chat messages for consistency.
+class SignalKeyPair {
+  final Uint8List publicKey;
+  final Uint8List privateKey;
+
+  SignalKeyPair({required this.publicKey, required this.privateKey});
+}
+
 class DoubleRatchetSignalCrypto implements SignalCrypto {
   static const String _prefsKeyPrefix = 'signal_dr_';
   final SharedPreferences _prefs;
 
   DoubleRatchetSignalCrypto(this._prefs);
 
-  /// Set current peer ID for subsequent encrypt/decrypt calls.
-  void setPeerId(String peerId) {
-    // Peer context is stored per session
+  // PreKey Storage (Private Keys)
+  // keyId -> base64(privateKey)
+  Future<void> storePreKey(int keyId, Uint8List privateKey) async {
+    await _prefs.setString('${_prefsKeyPrefix}prekey_$keyId', base64Encode(privateKey));
   }
+
+  Future<Uint8List?> getPreKey(int keyId) async {
+    final b64 = _prefs.getString('${_prefsKeyPrefix}prekey_$keyId');
+    if (b64 == null) return null;
+    return base64Decode(b64);
+  }
+
+  Future<void> storeSignedPreKey(int keyId, Uint8List privateKey) async {
+    await _prefs.setString('${_prefsKeyPrefix}signed_prekey_$keyId', base64Encode(privateKey));
+  }
+
+  Future<Uint8List?> getSignedPreKey(int keyId) async {
+    final b64 = _prefs.getString('${_prefsKeyPrefix}signed_prekey_$keyId');
+    if (b64 == null) return null;
+    return base64Decode(b64);
+  }
+
+  SignalKeyPair? _ourIdentityKey;
+
+  /// Set our stable Identity Key (derived from mnemonic).
+  /// Must be called after login/restore.
+  void setIdentityKey(Uint8List privateKey) {
+    // Compute public key from private key using base point (9)
+    final basePoint = Uint8List(32);
+    basePoint[0] = 9;
+    
+    final publicKey = _computeDH(privateKey, basePoint);
+    
+    _ourIdentityKey = SignalKeyPair(
+      privateKey: privateKey,
+      publicKey: publicKey,
+    );
+  }
+
+
 
   /// Initialize session with PreKey Bundle (X3DH).
   /// Call this before first message exchange.
@@ -40,27 +83,42 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
     final ourEphemeralKey = _generateKeyPair();
 
     // X3DH: Compute shared secrets
-    final dh1 = _computeDH(ourEphemeralKey.privateKey, identityKey);
-    final dh2 = _computeDH(ourEphemeralKey.privateKey, signedPreKey);
-    final dh3 = oneTimePreKey != null ? _computeDH(ourEphemeralKey.privateKey, oneTimePreKey) : null;
+    // DH1 = DH(IK_A, SPK_B) [Authenticated]
+    // DH2 = DH(EK_A, IK_B)  [Mutual Auth / Forward Secrecy]
+    // DH3 = DH(EK_A, SPK_B) [Forward Secrecy]
+    // DH4 = DH(EK_A, OPK_B) [Forward Secrecy]
+    
+    Uint8List? dh1;
+    if (_ourIdentityKey != null) {
+       dh1 = _computeDH(_ourIdentityKey!.privateKey, signedPreKey);
+    }
+    
+    final dh2 = _computeDH(ourEphemeralKey.privateKey, identityKey);
+    final dh3 = _computeDH(ourEphemeralKey.privateKey, signedPreKey);
+    final dh4 = oneTimePreKey != null ? _computeDH(ourEphemeralKey.privateKey, oneTimePreKey) : null;
 
     // Combine shared secrets into root key
-    final rootKeyMaterial = Uint8List(32 + 32 + (dh3 != null ? 32 : 0));
-    rootKeyMaterial.setRange(0, 32, dh1);
-    rootKeyMaterial.setRange(32, 64, dh2);
-    if (dh3 != null) {
-      rootKeyMaterial.setRange(64, 96, dh3);
+    final rootKeyMaterial = BytesBuilder();
+    
+    // Protocol upgrade: If we have Identity Key, include DH1 for authentication
+    if (dh1 != null) {
+      rootKeyMaterial.add(dh1);
+    }
+    rootKeyMaterial.add(dh2);
+    rootKeyMaterial.add(dh3);
+    if (dh4 != null) {
+      rootKeyMaterial.add(dh4);
     }
 
-    final rootKey = sha256.convert(rootKeyMaterial.toList()).bytes.sublist(0, 32);
+    final rootKey = sha256.convert(rootKeyMaterial.toBytes()).bytes.sublist(0, 32);
 
     // Initialize Double Ratchet state
     final session = _DoubleRatchetSession(
       peerId: peerId,
       rootKey: Uint8List.fromList(rootKey),
-      sendingChainKey: _deriveChainKey(rootKey, 0),
+      sendingChainKey: _deriveChainKey(Uint8List.fromList(rootKey), 0),
       receivingChainKey: null, // Will be set on first received message
-      sendingHeaderKey: _deriveHeaderKey(rootKey),
+      sendingHeaderKey: _deriveHeaderKey(Uint8List.fromList(rootKey)),
       receivingHeaderKey: null,
       sendingMessageNumber: 0,
       receivingMessageNumber: 0,
@@ -98,7 +156,7 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
     }
 
     // Double Ratchet: Derive message key from sending chain
-    final messageKey = _deriveMessageKey(session.sendingChainKey, session.sendingMessageNumber);
+    final messageKey = _deriveMessageKey(session.sendingChainKey!, session.sendingMessageNumber);
     final headerKey = session.sendingHeaderKey;
 
     // Encrypt with ChaCha20 + HMAC (like signal_crypto_real.dart)
@@ -186,12 +244,12 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
     }
 
     // Derive message key
-    final messageKey = _deriveMessageKey(session.receivingChainKey ?? session.sendingChainKey, messageNumber);
+    final messageKey = _deriveMessageKey((session.receivingChainKey ?? session.sendingChainKey)!, messageNumber);
 
     // Verify tag
     final hmac = Hmac(sha256, messageKey);
     final expectedTag = hmac.convert([...nonce, ...ciphertext].toList()).bytes.sublist(0, 32);
-    if (!_constantTimeEquals(tag, expectedTag)) {
+    if (!_constantTimeEquals(tag, Uint8List.fromList(expectedTag))) {
       throw StateError('Authentication failed: invalid tag');
     }
 
@@ -231,7 +289,7 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
     return result == 0;
   }
 
-  _KeyPair _generateKeyPair() {
+  SignalKeyPair generateKeyPair() {
     final rng = FortunaRandom();
     final seedSource = Random.secure();
     final seeds = <int>[];
@@ -240,41 +298,83 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
     }
     rng.seed(KeyParameter(Uint8List.fromList(seeds)));
 
-    // Generate X25519 key pair using SecureRandom
-    final privateKey = Uint8List(32);
-    final publicKey = Uint8List(32);
-    for (var i = 0; i < 32; i++) {
-      privateKey[i] = rng.nextUint8();
-    }
-    // X25519 public key = X25519(private_key, base_point)
-    // For simplicity, use a library function or compute manually
-    // Note: This is a simplified version - in production use proper X25519 library
-    final keyGen = X25519KeyGenerator();
-    keyGen.init(ParametersWithRandom(X25519KeyGeneratorParameters(), rng));
+    // Use secp256r1 (P-256) as standard fallback if X25519 is missing
+    final domainParams = ECDomainParameters('prime256v1');
+    final keyGen = ECKeyGenerator();
+    keyGen.init(ParametersWithRandom(ECKeyGeneratorParameters(domainParams), rng));
     final pair = keyGen.generateKeyPair();
     
-    // Extract public/private keys
-    final pubKey = pair.publicKey;
-    final privKey = pair.privateKey;
+    final pubKey = (pair.publicKey as ECPublicKey).Q!.getEncoded(true);
+    // Convert BigInt to Uint8List manually since toByteArray is missing
+    final privBigInt = (pair.privateKey as ECPrivateKey).d!;
+    var privHex = privBigInt.toRadixString(16);
+    if (privHex.length % 2 != 0) privHex = '0$privHex';
+    final privKey = Uint8List(privHex.length ~/ 2);
+    for (var i = 0; i < privKey.length; i++) {
+      privKey[i] = int.parse(privHex.substring(i * 2, i * 2 + 2), radix: 16);
+    }
     
-    return _KeyPair(
-      publicKey: pubKey is X25519PublicKey ? pubKey.encodedKey : Uint8List(32),
-      privateKey: privKey is X25519PrivateKey ? privKey.encodedKey : Uint8List(32),
+    // Ensure 32 bytes for private key (pad if needed)
+    final paddedPriv = Uint8List(32);
+    final privLen = privKey.length;
+    if (privLen <= 32) {
+      paddedPriv.setRange(32 - privLen, 32, privKey);
+    } else {
+      paddedPriv.setRange(0, 32, privKey.sublist(privLen - 32));
+    }
+
+    return SignalKeyPair(
+      publicKey: pubKey,
+      privateKey: paddedPriv,
     );
   }
 
+  // Legacy private method wrapper
+  SignalKeyPair _generateKeyPair() => generateKeyPair();
+
   Uint8List _computeDH(Uint8List privateKey, Uint8List publicKey) {
     try {
-      final agreement = X25519Agreement();
-      agreement.init(PrivateKeyParameter(X25519PrivateKey(privateKey)));
+      final domainParams = ECDomainParameters('prime256v1');
+      final agreement = ECDHBasicAgreement();
+      
+      // Decode private key
+      var privBigInt = BigInt.zero;
+      for (var byte in privateKey) {
+        privBigInt = (privBigInt << 8) | BigInt.from(byte);
+      }
+      
+      // PointyCastle update: init expects CipherParameters, but specific implementations might differ.
+      // If PrivateKeyParameter wrapper causes issues, try passing ECPrivateKey directly if permitted,
+      // but usually it needs the wrapper. 
+      // Checking error: "PrivateKeyParameter<PrivateKey> can't be assigned to ECPrivateKey".
+      // This implies init expects ECPrivateKey directly for ECDHBasicAgreement in this version?
+      agreement.init(ECPrivateKey(privBigInt, domainParams));
+      
+      // Decode public key (ECPoint)
+      final curve = domainParams.curve;
+      final pubPoint = curve.decodePoint(publicKey);
+      
+      final sharedSecretBigInt = agreement.calculateAgreement(ECPublicKey(pubPoint, domainParams));
+      
+      // Convert shared secret to 32 bytes
+      var sharedSecretHex = sharedSecretBigInt.toRadixString(16);
+      if (sharedSecretHex.length % 2 != 0) sharedSecretHex = '0$sharedSecretHex';
+      final sharedSecretBytes = Uint8List(sharedSecretHex.length ~/ 2);
+      for (var i = 0; i < sharedSecretBytes.length; i++) {
+        sharedSecretBytes[i] = int.parse(sharedSecretHex.substring(i * 2, i * 2 + 2), radix: 16);
+      }
+
       final sharedSecret = Uint8List(32);
-      agreement.calculateAgreement(PublicKeyParameter(X25519PublicKey(publicKey)), sharedSecret, 0);
+      final len = sharedSecretBytes.length;
+      if (len <= 32) {
+        sharedSecret.setRange(32 - len, 32, sharedSecretBytes);
+      } else {
+        sharedSecret.setRange(0, 32, sharedSecretBytes.sublist(len - 32));
+      }
+      
       return sharedSecret;
     } catch (e) {
-      // Fallback: simplified DH computation
-      // In production, ensure proper X25519 implementation
-      final hmac = Hmac(sha256, privateKey);
-      return Uint8List.fromList(hmac.convert([...privateKey, ...publicKey]).bytes.sublist(0, 32));
+      throw StateError('DH computation failed: $e');
     }
   }
 
@@ -378,13 +478,6 @@ class DoubleRatchetSignalCrypto implements SignalCrypto {
   }
 }
 
-class _KeyPair {
-  final Uint8List publicKey;
-  final Uint8List privateKey;
-
-  _KeyPair({required this.publicKey, required this.privateKey});
-}
-
 class _DoubleRatchetSession {
   final String peerId;
   Uint8List rootKey;
@@ -395,7 +488,7 @@ class _DoubleRatchetSession {
   int sendingMessageNumber;
   int receivingMessageNumber;
   int previousChainLength;
-  _KeyPair ourEphemeralKey;
+  SignalKeyPair ourEphemeralKey;
   Uint8List theirIdentityKey;
   Uint8List? theirEphemeralKey;
 
@@ -443,7 +536,7 @@ class _DoubleRatchetSession {
       sendingMessageNumber: json['sendingMessageNumber'] as int,
       receivingMessageNumber: json['receivingMessageNumber'] as int,
       previousChainLength: json['previousChainLength'] as int,
-      ourEphemeralKey: _KeyPair(
+      ourEphemeralKey: SignalKeyPair(
         publicKey: base64Decode(json['ourEphemeralKeyPublic'] as String),
         privateKey: base64Decode(json['ourEphemeralKeyPrivate'] as String),
       ),

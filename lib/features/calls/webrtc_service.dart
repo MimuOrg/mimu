@@ -5,6 +5,7 @@ import 'package:mimu/features/calls/calls_api.dart';
 import 'package:mimu/data/services/websocket_service.dart';
 import 'package:mimu/features/calls/signal_crypto.dart';
 import 'package:mimu/features/calls/signal_crypto_real.dart';
+import 'package:mimu/data/services/signal_service.dart';
 
 /// WebRTC P2P calls.
 /// Signalling must be E2EE (Signal Protocol) – server only relays opaque blobs.
@@ -15,8 +16,16 @@ class WebRTCService {
 
   RTCPeerConnection? _pc;
   MediaStream? _localStream;
+  MediaStream? _remoteStream;
   String? _currentPeerId;
   String? _currentCallId;
+
+  // Renderers
+  final RTCVideoRenderer _localRenderer = RTCVideoRenderer();
+  final RTCVideoRenderer _remoteRenderer = RTCVideoRenderer();
+
+  RTCVideoRenderer get localRenderer => _localRenderer;
+  RTCVideoRenderer get remoteRenderer => _remoteRenderer;
 
   // callId -> encrypted SDP offer (base64)
   final Map<String, String> _pendingOffers = {};
@@ -25,7 +34,13 @@ class WebRTCService {
   void Function(String callId, String fromUserId)? onIncomingOffer;
   void Function(String callId)? onHangup;
 
-  WebRTCService(this._ws, this._callsApi, this._crypto);
+  WebRTCService(this._ws, this._callsApi, [SignalCrypto? crypto])
+      : _crypto = crypto ?? SignalService().crypto;
+
+  Future<void> initializeRenderers() async {
+    await _localRenderer.initialize();
+    await _remoteRenderer.initialize();
+  }
 
   Future<void> _createPeerConnection({required bool alwaysRelay}) async {
     final turn = await _callsApi.getTurnCredentials();
@@ -60,6 +75,8 @@ class WebRTCService {
 
     _pc!.onTrack = (event) {
       if (event.streams.isNotEmpty) {
+        _remoteStream = event.streams[0];
+        _remoteRenderer.srcObject = _remoteStream;
         onRemoteStream?.call(event.streams[0]);
       }
     };
@@ -81,8 +98,10 @@ class WebRTCService {
 
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
-      'video': video,
+      'video': video ? {'facingMode': 'user'} : false,
     });
+    
+    _localRenderer.srcObject = _localStream;
 
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
@@ -129,7 +148,8 @@ class WebRTCService {
           (_crypto as RealSignalCrypto).setPeerId(fromUserId);
         }
         final decoded = _crypto.decryptFromBase64(encrypted);
-        final sdp = RTCSessionDescription.fromMap(jsonDecode(decoded));
+        final decodedMap = jsonDecode(decoded);
+        final sdp = RTCSessionDescription(decodedMap['sdp'], decodedMap['type']);
         await _pc!.setRemoteDescription(sdp);
         // Start heartbeat when call is accepted
         if (callId.isNotEmpty && fromUserId.isNotEmpty) {
@@ -148,7 +168,8 @@ class WebRTCService {
           (_crypto as RealSignalCrypto).setPeerId(fromUserId);
         }
         final decoded = _crypto.decryptFromBase64(encrypted);
-        final cand = RTCIceCandidate.fromMap(jsonDecode(decoded));
+        final decodedMap = jsonDecode(decoded);
+        final cand = RTCIceCandidate(decodedMap['candidate'], decodedMap['sdpMid'], decodedMap['sdpMLineIndex']);
         await _pc!.addCandidate(cand);
         break;
       case 'call_hangup':
@@ -179,8 +200,11 @@ class WebRTCService {
 
     _localStream = await navigator.mediaDevices.getUserMedia({
       'audio': true,
-      'video': video,
+      'video': video ? {'facingMode': 'user'} : false,
     });
+    
+    _localRenderer.srcObject = _localStream;
+    
     for (final track in _localStream!.getTracks()) {
       await _pc!.addTrack(track, _localStream!);
     }
@@ -188,7 +212,9 @@ class WebRTCService {
     // RealSignalCrypto uses setPeerId() context
     final decoded = _crypto.decryptFromBase64(encrypted);
     
-    final offer = RTCSessionDescription.fromMap(jsonDecode(decoded));
+    final decodedMap = jsonDecode(decoded);
+    
+    final offer = RTCSessionDescription(decodedMap['sdp'], decodedMap['type']);
     await _pc!.setRemoteDescription(offer);
 
     final answer = await _pc!.createAnswer();
@@ -222,7 +248,7 @@ class WebRTCService {
 
   /// Switch audio output (speaker/earpiece/headphones).
   Future<void> setSpeakerphoneOn(bool on) async {
-    await AudioManager.setSpeakerphoneOn(on);
+    await Helper.setSpeakerphoneOn(on);
   }
 
   /// Mute/unmute microphone.
@@ -230,7 +256,7 @@ class WebRTCService {
     if (_localStream == null) return;
     final audioTracks = _localStream!.getAudioTracks();
     for (final track in audioTracks) {
-      await track.setEnabled(!mute);
+      track.enabled = !mute;
     }
   }
 
@@ -239,11 +265,23 @@ class WebRTCService {
     if (_localStream == null) return;
     final videoTracks = _localStream!.getVideoTracks();
     for (final track in videoTracks) {
-      await track.setEnabled(enabled);
+      track.enabled = enabled;
+    }
+  }
+
+  /// Switch camera.
+  Future<void> switchCamera() async {
+    if (_localStream != null) {
+      final videoTrack = _localStream!.getVideoTracks().first;
+      await Helper.switchCamera(videoTrack);
     }
   }
 
   Future<void> dispose() async {
+    _localRenderer.srcObject = null;
+    _remoteRenderer.srcObject = null;
+    await _localRenderer.dispose();
+    await _remoteRenderer.dispose();
     await _localStream?.dispose();
     await _pc?.close();
     _localStream = null;

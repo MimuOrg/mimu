@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -21,22 +23,16 @@ class CallKitService {
       final callId = (body['id'] ?? body['callId'] ?? '').toString();
       if (callId.isEmpty) return;
 
-      switch (e) {
-        case Event.actionCallAccept:
-          await _stopRingtone();
-          // Open app if needed (CallKit handles this automatically)
-          await onAccept(callId);
-          break;
-        case Event.actionCallDecline:
-          await _stopRingtone();
-          // Don't open app, just send hangup
-          await onDecline(callId);
-          break;
-        case Event.actionCallEnded:
-          await _stopRingtone();
-          await _stopDialTone();
-          await onEnd(callId);
-          break;
+      if (e == Event.actionCallAccept) {
+        await _stopRingtone();
+        await onAccept(callId);
+      } else if (e == Event.actionCallDecline) {
+        await _stopRingtone();
+        await onDecline(callId);
+      } else if (e == Event.actionCallEnded) {
+        await _stopRingtone();
+        await _stopDialTone();
+        await onEnd(callId);
       }
     });
   }
@@ -47,24 +43,23 @@ class CallKitService {
     required bool hasVideo,
   }) async {
     await _playRingtone();
-    await FlutterCallkitIncoming.showCallkitIncoming({
-      'id': callId,
-      'nameCaller': nameCaller,
-      'appName': 'Mimu',
-      'type': hasVideo ? 1 : 0, // 0 audio, 1 video
-      'duration': 60000, // 60 seconds timeout
-      'textAccept': 'Принять',
-      'textDecline': 'Отклонить',
-      'android': {
-        'isCustomNotification': false,
-        'ringtonePath': 'system_default', // Use system ringtone
-        'vibrationPattern': [0, 1000, 500, 1000], // Vibrate pattern
-      },
-      'ios': {
-        'supportsVideo': hasVideo,
-        'ringtonePath': 'system_default',
-      },
-    });
+    await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
+      id: callId,
+      nameCaller: nameCaller,
+      appName: 'Mimu',
+      type: hasVideo ? 1 : 0,
+      duration: 60000,
+      textAccept: 'Принять',
+      textDecline: 'Отклонить',
+      android: AndroidParams(
+        isCustomNotification: false,
+        ringtonePath: 'system_default',
+      ),
+      ios: IOSParams(
+        supportsVideo: hasVideo,
+        ringtonePath: 'system_default',
+      ),
+    ));
   }
 
   Future<void> startOutgoing({required String callId}) async {

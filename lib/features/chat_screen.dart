@@ -11,6 +11,7 @@ import 'package:mimu/shared/animated_widgets.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:mimu/shared/glass_widgets.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
@@ -667,8 +668,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
         return Scaffold(
           extendBodyBehindAppBar: true,
+          backgroundColor: AppStyles.backgroundOled,
           appBar: AppBar(
-            backgroundColor: Colors.transparent,
+            backgroundColor: AppStyles.backgroundOled,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             toolbarHeight: _isChatSearchActive ? kToolbarHeight : 110,
             leading: IconButton(
@@ -751,27 +754,10 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                       ),
                     )
                   ],
-            flexibleSpace: ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
           ),
           body: Stack(
             children: [
-              Consumer<ThemeProvider>(
-                builder: (context, themeProvider, child) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/background_pattern.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  );
-                },
-              ),
+              Container(color: AppStyles.backgroundOled),
               Column(
                 children: [
                   if (chatStore.isSyncingChat(widget.chatId))
@@ -2631,6 +2617,42 @@ class _MessageBubble extends StatelessWidget {
         return _StickerBubble(
           text: message.text ?? '',
         );
+      case ChatMessageType.video:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: MediaQuery.of(context).size.width * 0.65,
+                    height: MediaQuery.of(context).size.width * 0.65 * 0.6,
+                    color: Colors.black.withOpacity(0.3),
+                    child: const Center(
+                      child: Icon(CupertinoIcons.video_camera_solid,
+                          color: Colors.white54, size: 40),
+                    ),
+                  ),
+                ),
+                const Icon(CupertinoIcons.play_circle_fill,
+                    color: Colors.white, size: 48),
+              ],
+            ),
+            if (message.text != null && message.text!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                message.text!,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ],
+        );
       case ChatMessageType.call:
         return _CallBubble(
           text: message.text ?? '',
@@ -2653,37 +2675,27 @@ class _ChannelSubscriberBar extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3),
-                  width: 1,
-                ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: AppStyles.surfaceDecoration(
+            borderRadius: 18,
+            color: Theme.of(context).primaryColor.withOpacity(0.12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(CupertinoIcons.bell_slash_fill, size: 18, color: Colors.white.withOpacity(0.9)),
+              const SizedBox(width: 8),
+              Text(
+                'Только чтение. Уведомления:',
+                style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(CupertinoIcons.bell_slash_fill, size: 18, color: Colors.white.withOpacity(0.9)),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Только чтение. Уведомления:',
-                    style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9)),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: onMuteUnmute,
-                    child: const Text('Mute / Unmute'),
-                  ),
-                ],
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: onMuteUnmute,
+                child: const Text('Mute / Unmute'),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -2775,20 +2787,13 @@ class _MessageInputFieldState extends State<_MessageInputField> {
       top: false,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
-                    width: 1),
-              ),
-              child: Column(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          decoration: AppStyles.surfaceDecoration(
+            borderRadius: 18,
+            color: Theme.of(context).primaryColor.withOpacity(0.12),
+          ),
+          child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Панель цитирования (уменьшена)
@@ -3049,11 +3054,9 @@ class _MessageInputFieldState extends State<_MessageInputField> {
                           size: 18,
                         ),
                       ),
-                    ],
-                  ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -3061,9 +3064,9 @@ class _MessageInputFieldState extends State<_MessageInputField> {
         .animate()
         .slideY(
             begin: 0.2,
-            duration: Duration(milliseconds: 350),
+            duration: const Duration(milliseconds: 350),
             curve: Curves.easeOutCubic)
-        .fadeIn(duration: Duration(milliseconds: 300));
+        .fadeIn(duration: const Duration(milliseconds: 300));
   }
 }
 

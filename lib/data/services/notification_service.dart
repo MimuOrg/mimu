@@ -1,10 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mimu/data/api_service.dart';
 import 'package:mimu/data/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:mimu/app/navigator_key.dart';
+import 'package:mimu/app/routes.dart';
+import 'package:flutter/material.dart';
 
 /// Сервис для работы с push-уведомлениями
 class NotificationService {
@@ -114,7 +119,9 @@ class NotificationService {
   }
 
   Future<String> _getPlatform() async {
-    return 'android'; // TODO: use dart:io Platform.isIOS when needed
+    if (Platform.isIOS) return 'ios';
+    if (Platform.isAndroid) return 'android';
+    return 'other';
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
@@ -162,16 +169,20 @@ class NotificationService {
   void _handleNotificationTap(RemoteMessage message) {
     final chatId = message.data['chat_id'];
     if (chatId != null) {
-      // Навигация к чату
-      // TODO: Интегрировать с NavigationService
+      navigatorKey.currentState?.pushNamed(
+        AppRoutes.chat,
+        arguments: {'chatId': chatId},
+      );
     }
   }
 
   void _onNotificationTapped(NotificationResponse response) {
     final chatId = response.payload;
     if (chatId != null) {
-      // Навигация к чату
-      // TODO: Интегрировать с NavigationService
+      navigatorKey.currentState?.pushNamed(
+        AppRoutes.chat,
+        arguments: {'chatId': chatId},
+      );
     }
   }
 

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +13,9 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/app/routes.dart';
+import 'package:mimu/features/backup_settings_screen.dart';
 
 class SettingsHub extends StatefulWidget {
   const SettingsHub({super.key});
@@ -32,158 +33,162 @@ class _SettingsHubState extends State<SettingsHub> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: EdgeInsets.zero, // Telegram iOS - без отступов
-      children: [
-        const AnimateOnDisplay(child: _ProfileHeader()),
-        const SizedBox(height: 24),
-        // Mimu Premium - отдельная категория вверху
-        AnimateOnDisplay(
-          delayMs: 50,
-          child: _SettingsGroup(
-            title: "Premium",
-            items: [
-              _SettingsItem(
-                icon: CupertinoIcons.rocket_fill,
-                title: "Mimu Premium",
-                onTap: () => _openDetail(context, "Mimu Premium"),
-              ),
-            ],
+    return Container(
+      color: AppStyles.backgroundOled,
+      child: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
+        children: [
+          const AnimateOnDisplay(child: _ProfileHeader()),
+          const SizedBox(height: 8),
+          AnimateOnDisplay(
+            delayMs: 50,
+            child: _SettingsGroup(
+              title: "Premium",
+              items: [
+                _SettingsItem(
+                  icon: CupertinoIcons.rocket_fill,
+                  title: "Mimu Premium",
+                  onTap: () => _openDetail(context, "Mimu Premium"),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        AnimateOnDisplay(
-          delayMs: 100,
-          child: _SettingsGroup(
-            title: "Основные",
-            items: [
-              _SettingsItem(
-                icon: CupertinoIcons.person_circle_fill,
-                title: "Мой аккаунт",
-                onTap: () => _openDetail(context, "Мой аккаунт"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.bell_fill,
-                title: "Уведомления",
-                onTap: () => _openDetail(context, "Уведомления"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.paintbrush_fill,
-                title: "Внешний вид",
-                onTap: () => _openDetail(context, "Внешний вид"),
-              ),
-            ],
+          AnimateOnDisplay(
+            delayMs: 100,
+            child: _SettingsGroup(
+              title: "Основные",
+              items: [
+                _SettingsItem(
+                  icon: CupertinoIcons.person_circle_fill,
+                  title: "Мой аккаунт",
+                  onTap: () => _openDetail(context, "Мой аккаунт"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.bell_fill,
+                  title: "Уведомления",
+                  onTap: () => _openDetail(context, "Уведомления"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.paintbrush_fill,
+                  title: "Внешний вид",
+                  onTap: () => _openDetail(context, "Внешний вид"),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        AnimateOnDisplay(
-          delayMs: 200,
-          child: _SettingsGroup(
-            title: "Безопасность и Данные",
-            items: [
-              _SettingsItem(
-                icon: CupertinoIcons.checkmark_shield_fill,
-                title: "Конфиденциальность и данные",
-                onTap: () => _openDetail(context, "Конфиденциальность"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.power,
-                title: "Настройка подключения",
-                onTap: () => _openDetail(context, "Настройка подключения"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.square_stack_fill,
-                title: "Данные и Память",
-                onTap: () => _openDetail(context, "Данные и Память"),
-              ),
-            ],
+          AnimateOnDisplay(
+            delayMs: 200,
+            child: _SettingsGroup(
+              title: "Безопасность и Данные",
+              items: [
+                _SettingsItem(
+                  icon: CupertinoIcons.checkmark_shield_fill,
+                  title: "Конфиденциальность и данные",
+                  onTap: () => _openDetail(context, "Конфиденциальность"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.power,
+                  title: "Настройка подключения",
+                  onTap: () => _openDetail(context, "Настройка подключения"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.square_stack_fill,
+                  title: "Данные и Память",
+                  onTap: () => _openDetail(context, "Данные и Память"),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        AnimateOnDisplay(
-          delayMs: 300,
-          child: _SettingsGroup(
-            title: "Медиа",
-            items: [
-              _SettingsItem(
-                icon: CupertinoIcons.speaker_2_fill,
-                title: "Звук",
-                onTap: () => _openDetail(context, "Звук"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.videocam_fill,
-                title: "Видео",
-                onTap: () => _openDetail(context, "Видео"),
-              ),
-            ],
+          AnimateOnDisplay(
+            delayMs: 300,
+            child: _SettingsGroup(
+              title: "Медиа",
+              items: [
+                _SettingsItem(
+                  icon: CupertinoIcons.speaker_2_fill,
+                  title: "Звук",
+                  onTap: () => _openDetail(context, "Звук"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.videocam_fill,
+                  title: "Видео",
+                  onTap: () => _openDetail(context, "Видео"),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        AnimateOnDisplay(
-          delayMs: 400,
-          child: _SettingsGroup(
-            title: "Поддержка",
-            items: [
-              _SettingsItem(
-                icon: CupertinoIcons.question_circle_fill,
-                title: "Поддержка",
-                onTap: () => _openDetail(context, "Поддержка"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.info_circle_fill,
-                title: "О приложении",
-                onTap: () => _openDetail(context, "О приложении"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.textformat,
-                title: "Язык",
-                onTap: () => _openDetail(context, "Язык"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.cloud_upload_fill,
-                title: "Резервное копирование",
-                onTap: () => _openDetail(context, "Резервное копирование"),
-              ),
-              _SettingsItem(
-                icon: CupertinoIcons.chart_bar_fill,
-                title: "Статистика",
-                onTap: () => _openDetail(context, "Статистика"),
-              ),
-            ],
+          AnimateOnDisplay(
+            delayMs: 400,
+            child: _SettingsGroup(
+              title: "Поддержка",
+              items: [
+                _SettingsItem(
+                  icon: CupertinoIcons.question_circle_fill,
+                  title: "Поддержка",
+                  onTap: () => _openDetail(context, "Поддержка"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.info_circle_fill,
+                  title: "О приложении",
+                  onTap: () => _openDetail(context, "О приложении"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.textformat,
+                  title: "Язык",
+                  onTap: () => _openDetail(context, "Язык"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.cloud_upload_fill,
+                  title: "Резервное копирование",
+                  onTap: () => _openDetail(context, "Резервное копирование"),
+                ),
+                _SettingsItem(
+                  icon: CupertinoIcons.chart_bar_fill,
+                  title: "Статистика",
+                  onTap: () => _openDetail(context, "Статистика"),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Добавляем отступ внизу, чтобы нижняя панель не перекрывала последний элемент
-        const SizedBox(height: 100),
-      ],
+          const SizedBox(height: 100),
+        ],
+      ),
     );
   }
 
   void _openDetail(BuildContext context, String title) {
-    // Telegram iOS стиль - быстрый и плавный переход
     if (SettingsService.getVibrationEnabled()) {
       HapticFeedback.lightImpact();
     }
+    
+    if (title == "Резервное копирование") {
+       Navigator.of(context).push(
+         CupertinoPageRoute(builder: (_) => const BackupSettingsScreen())
+       );
+       return;
+    }
+
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             _SettingsDetailPage(title: title),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           final tween = Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-              .chain(CurveTween(curve: Curves.easeOutCubic));
+              .chain(CurveTween(curve: AppStyles.animationCurve));
 
           return SlideTransition(
             position: animation.drive(tween),
             child: FadeTransition(
               opacity: CurvedAnimation(
                 parent: animation,
-                curve: Curves.easeOutCubic,
+                curve: AppStyles.animationCurve,
               ),
               child: child,
             ),
           );
         },
-        transitionDuration: const Duration(milliseconds: 250),
+        transitionDuration: AppStyles.animationDuration,
       ),
     );
   }
@@ -215,62 +220,45 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
 
 
   Future<void> _changeAvatar() async {
-
     showCupertinoModalPopup(
       context: context,
-
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
-      builder: (ctx) => buildCupertinoActionSheet(
-        context: ctx,
+      builder: (ctx) => CupertinoActionSheet(
         actions: [
           CupertinoActionSheetAction(
             onPressed: () async {
               Navigator.of(ctx).pop();
               final XFile? file = await _picker.pickImage(
-
                 source: ImageSource.gallery,
                 imageQuality: 85,
               );
               if (file != null) {
-
                 await UserService.setAvatarPath(file.path);
-
                 setState(() => _avatarPath = file.path);
-
               }
             },
-
             child: const Text('Галерея'),
           ),
           CupertinoActionSheetAction(
             onPressed: () async {
               Navigator.of(ctx).pop();
               final XFile? file = await _picker.pickImage(
-
                 source: ImageSource.camera,
                 imageQuality: 85,
               );
               if (file != null) {
-
                 await UserService.setAvatarPath(file.path);
-
                 setState(() => _avatarPath = file.path);
-
               }
             },
-
             child: const Text('Камера'),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           onPressed: () => Navigator.of(ctx).pop(),
-
           child: const Text('Отмена'),
         ),
       ),
-
     );
-
   }
 
 
@@ -279,42 +267,83 @@ class _ProfileHeaderState extends State<_ProfileHeader> {
     final displayName = UserService.getDisplayName();
     final username = UserService.getUsername();
 
-    return Column(
-      children: [
-        GestureDetector(
-          onTap: _changeAvatar,
-          child: Stack(
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: _avatarPath != null &&
-                        File(_avatarPath!).existsSync()
-                    ? FileImage(File(_avatarPath!))
-                    : const AssetImage("assets/images/avatar_placeholder.png")
-                        as ImageProvider,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      child: Container(
+        decoration: AppStyles.surfaceDecoration(),
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: _changeAvatar,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppStyles.borderColor, width: 1),
+                      image: DecorationImage(
+                        image: _avatarPath != null && File(_avatarPath!).existsSync()
+                            ? FileImage(File(_avatarPath!))
+                            : const AssetImage("assets/images/avatar_placeholder.png")
+                                as ImageProvider,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: const Icon(CupertinoIcons.pencil,
+                          size: 10, color: Colors.white),
+                    ),
+                  ),
+                ],
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: CircleAvatar(
-                  radius: 15,
-                  backgroundColor: Theme.of(context).primaryColor,
-                  child: const Icon(CupertinoIcons.pencil,
-                      size: 16, color: Colors.white),
-                ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    displayName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontFamily: AppStyles.fontFamily,
+                      letterSpacing: AppStyles.letterSpacingSignature,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "@$username",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.5),
+                      fontFamily: AppStyles.fontFamily,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Icon(CupertinoIcons.qrcode, color: Colors.white.withOpacity(0.5)),
+          ],
         ),
-        const SizedBox(height: 12),
-        Text(displayName,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center),
-        Text("@$username",
-            style:
-                TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.6)),
-            textAlign: TextAlign.center),
-      ],
+      ),
     );
   }
 }
@@ -332,38 +361,28 @@ class _SettingsDetailPage extends StatelessWidget {
 
       extendBody: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-
+        backgroundColor: AppStyles.backgroundOled,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-
         leading: IconButton(
-
-          icon: const Icon(CupertinoIcons.back, weight: 700),
-
+          icon: const Icon(CupertinoIcons.back, weight: 700, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
-
         ),
-
-        title: Text(title),
-
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            fontFamily: AppStyles.fontFamily,
+            letterSpacing: AppStyles.letterSpacingSignature,
+          ),
+        ),
       ),
 
       body: Container(
-
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-
-          image: DecorationImage(
-
-            image: AssetImage("assets/images/secondb.png"),
-
-            fit: BoxFit.cover,
-
-            alignment: Alignment.center,
-          ),
-
-        ),
+        color: AppStyles.backgroundOled,
         child: SafeArea(
 
           top: false,
@@ -3719,44 +3738,40 @@ class _SettingsGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Заголовок группы в стиле Telegram iOS
         Padding(
-          padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 6.0),
+          padding: const EdgeInsets.only(left: 24.0, top: 24.0, bottom: 8.0),
           child: Text(
             title.toUpperCase(),
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.6),
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+            style: const TextStyle(
+              color: Color(0xFF888888),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              fontFamily: AppStyles.fontFamily,
             ),
           ),
         ),
-        // Контейнер с элементами в стиле Telegram iOS
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2C2C2E), // Telegram iOS серый
-            borderRadius: BorderRadius.circular(10),
-          ),
+          decoration: AppStyles.surfaceDecoration(),
+          clipBehavior: Clip.hardEdge,
           child: Column(
             children: List.generate(items.length, (index) {
               return Column(
                 children: [
                   items[index],
                   if (index != items.length - 1)
-                    Divider(
-                      height: 0.5,
-                      thickness: 0.5,
+                    const Divider(
+                      height: 0.6,
+                      thickness: 0.6,
                       indent: 56,
-                      color: Colors.white.withOpacity(0.1),
+                      color: AppStyles.borderColor,
                     ),
                 ],
               );
             }),
           ),
         ),
-        const SizedBox(height: 8),
       ],
     );
   }
@@ -3782,29 +3797,30 @@ class _SettingsItem extends StatelessWidget {
           onTap();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              // Иконка в стиле Telegram iOS - простая, без фона
               Icon(
                 icon,
-                color: Colors.white.withOpacity(0.9),
-                size: 24,
+                color: Colors.white,
+                size: 22,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
+                    fontFamily: AppStyles.fontFamily,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ),
-              Icon(
+              const Icon(
                 CupertinoIcons.chevron_right,
-                color: Colors.white.withOpacity(0.3),
+                color: AppStyles.borderColor,
                 size: 16,
               ),
             ],
@@ -3851,84 +3867,58 @@ Widget _buildFAQItem(String question, String answer) {
   );
 }
 
-// Helper function for animated dialogs with Cupertino
 void _showAnimatedDialog({
   required BuildContext context,
   required String title,
   required Widget content,
   required List<Widget> actions,
 }) {
-  showCupertinoDialog(
+  showDialog<void>(
     context: context,
     barrierDismissible: true,
-    builder: (context) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 1, sigmaY: 1),
+    barrierColor: Colors.black.withOpacity(0.7),
+    builder: (ctx) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withOpacity(0.96),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.08),
-                width: 0.8,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 26,
-                  offset: const Offset(0, 14),
+            decoration: AppStyles.surfaceDecoration(),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: AppStyles.fontFamily,
+                    letterSpacing: AppStyles.letterSpacingSignature,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                DefaultTextStyle(
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontFamily: AppStyles.fontFamily,
+                  ),
+                  child: content,
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: actions,
                 ),
               ],
-            ),
-            child: Theme(
-              data: Theme.of(context).copyWith(
-                cupertinoOverrideTheme: CupertinoThemeData(
-                  primaryColor: Theme.of(context).primaryColor,
-                  brightness: Brightness.dark,
-                ),
-              ),
-              child: CupertinoAlertDialog(
-                title: Text(title, style: const TextStyle(fontSize: 18)),
-                content: Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: DefaultTextStyle(
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
-                    ),
-                    child: content,
-                  ),
-                ),
-                actions: actions.map((action) {
-                  if (action is GlassButton) {
-                    return CupertinoDialogAction(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        action.onPressed?.call();
-                      },
-                      child: DefaultTextStyle(
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 16,
-                        ),
-                        child: action.child,
-                      ),
-                    );
-                  }
-                  return CupertinoDialogAction(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: DefaultTextStyle(
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                      ),
-                      child: action,
-                    ),
-                  );
-                }).toList(),
-              ),
             ),
           ),
         ),
@@ -3942,8 +3932,10 @@ void _showBlockedContacts(BuildContext context) {
   Navigator.of(context).push(
     MaterialPageRoute(
       builder: (context) => Scaffold(
+        backgroundColor: AppStyles.backgroundOled,
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppStyles.backgroundOled,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           leading: GlassIconButton(
             icon: PhosphorIconsBold.caretLeft,

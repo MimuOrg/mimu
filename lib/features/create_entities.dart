@@ -1,9 +1,7 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 
 import 'package:mimu/app/routes.dart';
@@ -96,7 +94,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     onTap: () async {
                       showCupertinoModalPopup(
                         context: context,
-                        filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
                         builder: (context) => buildCupertinoActionSheet(
                           context: context,
                           actions: [
@@ -258,7 +255,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       final contacts = context.read<ChatStore>().contacts;
                       showCupertinoModalPopup(
                         context: context,
-                        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                         builder: (context) => CupertinoActionSheet(
                           actions: [
                             CupertinoActionSheetAction(
@@ -314,7 +310,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       onPressed: () {
                         showCupertinoModalPopup(
                           context: context,
-                          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                           builder: (context) => _UserSelectionSheet(
                             selectedUsers: _selectedUsers,
                             onSelectionChanged: (selected) {
@@ -440,7 +435,6 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
                     onTap: () async {
                       showCupertinoModalPopup(
                         context: context,
-                        filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
                         builder: (context) => buildCupertinoActionSheet(
                           context: context,
                           actions: [

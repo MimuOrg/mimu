@@ -11,6 +11,9 @@ import 'package:mimu/data/services/notification_service.dart';
 import 'package:mimu/data/analytics_service.dart';
 import 'package:mimu/data/server_config.dart';
 import 'package:mimu/data/message_queue.dart';
+import 'package:mimu/data/services/signal_service.dart';
+import 'package:mimu/features/calls/call_controller.dart';
+import 'package:mimu/app/navigator_key.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -22,6 +25,10 @@ void main() async {
   await BrowserService.init();
   await ChannelService.init();
   await StatusService.init();
+  await SignalService().init();
+  
+  // Initialize Call Controller
+  await CallController().init();
   
   // Инициализация уведомлений (опционально, может не работать без Firebase)
   try {
@@ -71,6 +78,7 @@ class MimuApp extends StatelessWidget {
         builder: (context, themeProvider, fontProvider, child) {
           return MaterialApp(
             title: 'Mimu',
+            navigatorKey: navigatorKey,
             theme: MimuTheme.darkTheme(
               themeProvider.accentColor,
               fontProvider: fontProvider,

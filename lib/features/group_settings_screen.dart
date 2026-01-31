@@ -1,6 +1,8 @@
-import 'dart:ui';
+import 'package:mimu/data/e2ee/message_e2ee.dart';
+import 'package:mimu/data/message_api.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 import 'package:mimu/shared/animated_widgets.dart';
 import 'package:provider/provider.dart';
@@ -70,30 +72,27 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
         }
 
         return Scaffold(
-          extendBodyBehindAppBar: true,
+          backgroundColor: AppStyles.backgroundOled,
           appBar: AppBar(
-            backgroundColor: Colors.transparent,
+            backgroundColor: AppStyles.backgroundOled,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             leading: GlassIconButton(
               icon: CupertinoIcons.chevron_left,
               onPressed: () => Navigator.of(context).pop(),
             ),
-            title: Text('Настройки группы'),
-            centerTitle: true,
-            flexibleSpace: ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(color: Colors.transparent),
+            title: const Text(
+              'Настройки группы',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontFamily: AppStyles.fontFamily,
+                letterSpacing: AppStyles.letterSpacingSignature,
               ),
             ),
+            centerTitle: true,
           ),
           body: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/background_pattern.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
+            color: AppStyles.backgroundOled,
             child: SafeArea(
               child: ListView(
                 physics: const BouncingScrollPhysics(),
@@ -112,7 +111,12 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                           const SizedBox(height: 16),
                           Text(
                             chat.title,
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: AppStyles.fontFamily,
+                              letterSpacing: AppStyles.letterSpacingSignature,
+                            ),
                           ),
                           Text(
                             '${chat.participantIds.length} участников',
@@ -555,28 +559,43 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                           ),
                           title: Text(contact.name),
                           trailing: GlassButton(
-                            onPressed: () async {
-                              final updatedParticipants = List<String>.from(chat.participantIds)..add(contact.id);
-                              final updatedChat = chat.copyWith(participantIds: updatedParticipants);
-                              final threadIndex = chatStore.threads.indexWhere((t) => t.id == chat.id);
-                              if (threadIndex != -1) {
-                                chatStore.threads[threadIndex] = updatedChat;
-                                await chatStore.persistThreads();
-                                chatStore.notifyListeners();
-                              }
-                              Navigator.of(context).pop();
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('${contact.name} добавлен в группу')),
-                                );
-                              }
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Icon(CupertinoIcons.add, 
-                                  color: Theme.of(context).primaryColor, size: 18),
+                              onPressed: () async {
+                                try {
+                                  // 1. Distribute key to new participant
+                                  final distMessages = await MessageE2EE.distributeKeyToParticipants(chat.id, [contact.id]);
+                                  final messageApi = MessageApi();
+                                  for (final dist in distMessages) {
+                                    await messageApi.sendMessage(
+                                      chatId: dist.recipientId, 
+                                      messageType: 'signal_distribution',
+                                      encryptedPayloadBase64: dist.payload,
+                                    );
+                                  }
+                                } catch (e) {
+                                  debugPrint('Failed to distribute key: $e');
+                                }
+
+                                final updatedParticipants = List<String>.from(chat.participantIds)..add(contact.id);
+                                final updatedChat = chat.copyWith(participantIds: updatedParticipants);
+                                final threadIndex = chatStore.threads.indexWhere((t) => t.id == chat.id);
+                                if (threadIndex != -1) {
+                                  chatStore.threads[threadIndex] = updatedChat;
+                                  await chatStore.persistThreads();
+                                  chatStore.notifyListeners();
+                                }
+                                Navigator.of(context).pop();
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('${contact.name} добавлен в группу')),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Icon(CupertinoIcons.add, 
+                                    color: Theme.of(context).primaryColor, size: 18),
+                              ),
                             ),
-                          ),
                         ),
                       );
                     },

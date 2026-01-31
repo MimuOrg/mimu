@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -8,6 +6,7 @@ import 'package:mimu/app/routes.dart';
 import 'package:mimu/data/services/auth_service.dart';
 import 'package:mimu/data/services/bip39_wordlists.dart';
 import 'package:mimu/features/recovery_phrase_screen.dart';
+import 'package:mimu/shared/app_styles.dart';
 
 /// Screen for selecting authentication method
 class AuthMethodScreen extends StatefulWidget {
@@ -55,7 +54,7 @@ class _AuthMethodScreenState extends State<AuthMethodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppStyles.backgroundOled,
       body: Stack(
         children: [
           // Background Image
@@ -73,27 +72,8 @@ class _AuthMethodScreenState extends State<AuthMethodScreen> {
   }
 
   Widget _buildBackground() {
-    return SizedBox.expand(
-      child: Image.asset(
-        'assets/images/secondb.png',
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback gradient if image fails
-          return Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.purple.shade900.withOpacity(0.4),
-                  Colors.black,
-                  Colors.blue.shade900.withOpacity(0.3),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    return const SizedBox.expand(
+      child: ColoredBox(color: AppStyles.backgroundOled),
     );
   }
 
@@ -105,30 +85,14 @@ class _AuthMethodScreenState extends State<AuthMethodScreen> {
           const Spacer(flex: 2),
 
           // Logo/Icon with Glass Effect
-          ClipOval(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  PhosphorIconsBold.shieldCheck,
-                  color: Colors.white,
-                  size: 48,
-                ),
-              ),
+          Container(
+            width: 100,
+            height: 100,
+            decoration: AppStyles.surfaceDecoration(borderRadius: 50),
+            child: const Icon(
+              PhosphorIconsBold.shieldCheck,
+              color: Colors.white,
+              size: 48,
             ),
           ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
 
@@ -139,9 +103,10 @@ class _AuthMethodScreenState extends State<AuthMethodScreen> {
             'Welcome to Mimu',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              fontFamily: AppStyles.fontFamily,
+              letterSpacing: AppStyles.letterSpacingSignature,
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2),
@@ -155,6 +120,7 @@ class _AuthMethodScreenState extends State<AuthMethodScreen> {
               color: Colors.white.withOpacity(0.7),
               fontSize: 16,
               height: 1.5,
+              fontFamily: AppStyles.fontFamily,
             ),
             textAlign: TextAlign.center,
           ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
@@ -237,72 +203,63 @@ class _AuthMethodButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              // Dark glass style
-              color: const Color(0xFF2C2C2E).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: AppStyles.surfaceDecoration(
+          color: isPrimary
+              ? Theme.of(context).primaryColor.withOpacity(0.12)
+              : AppStyles.surfaceDeep,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: AppStyles.surfaceDecoration(
+                borderRadius: 16,
                 color: isPrimary
-                    ? Colors.white.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.1),
-                width: 1,
+                    ? Theme.of(context).primaryColor.withOpacity(0.18)
+                    : AppStyles.surfaceDeep,
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
               ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: isPrimary
-                        ? Colors.blue.withOpacity(0.2)
-                        : Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppStyles.fontFamily,
+                      letterSpacing: -0.4,
+                    ),
                   ),
-                  child: Icon(
-                    icon,
-                    color: isPrimary ? Colors.blue.shade300 : Colors.white,
-                    size: 24,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 13,
+                      fontFamily: AppStyles.fontFamily,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  PhosphorIconsRegular.caretRight,
-                  color: Colors.white.withOpacity(0.5),
-                  size: 20,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            Icon(
+              PhosphorIconsRegular.caretRight,
+              color: Colors.white.withOpacity(0.5),
+              size: 20,
+            ),
+          ],
         ),
       ),
     );
@@ -392,16 +349,12 @@ class _CreateAccountFlowState extends State<_CreateAccountFlow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppStyles.backgroundOled,
       body: Stack(
         children: [
           // Background
           SizedBox.expand(
-            child: Image.asset(
-              'assets/images/secondb.png',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(color: Colors.black),
-            ),
+            child: Container(color: AppStyles.backgroundOled),
           ),
 
           // Content
@@ -562,38 +515,32 @@ class _CreateAccountFlowState extends State<_CreateAccountFlow> {
           const Spacer(),
 
           // Info box
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C2C2E).withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: AppStyles.surfaceDecoration(
+              borderRadius: 18,
+              color: Theme.of(context).primaryColor.withOpacity(0.10),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  PhosphorIconsRegular.info,
+                  color: Theme.of(context).primaryColor,
+                  size: 20,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      PhosphorIconsRegular.info,
-                      color: Colors.blue.shade300,
-                      size: 20,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Your recovery phrase is the only way to access your account. Store it safely offline.',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 13,
+                      height: 1.4,
+                      fontFamily: AppStyles.fontFamily,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Your recovery phrase is the only way to access your account. Store it safely offline.',
-                        style: TextStyle(
-                          color: Colors.blue.shade100,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ).animate().fadeIn(duration: 300.ms, delay: 400.ms),
         ],
@@ -631,32 +578,26 @@ class _CreateAccountFlowState extends State<_CreateAccountFlow> {
           const SizedBox(height: 40),
 
           // Display name field
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2C2C2E).withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+          Container(
+            decoration: AppStyles.surfaceDecoration(borderRadius: 18),
+            child: TextField(
+              controller: _displayNameController,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontFamily: AppStyles.fontFamily,
+              ),
+              decoration: InputDecoration(
+                labelText: 'Display Name',
+                labelStyle: TextStyle(color: Colors.white.withOpacity(0.7), fontFamily: AppStyles.fontFamily),
+                hintText: 'e.g. John Doe',
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontFamily: AppStyles.fontFamily),
+                prefixIcon: Icon(
+                  PhosphorIconsRegular.user,
+                  color: Colors.white.withOpacity(0.5),
                 ),
-                child: TextField(
-                  controller: _displayNameController,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                  decoration: InputDecoration(
-                    labelText: 'Display Name',
-                    labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                    hintText: 'e.g. John Doe',
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-                    prefixIcon: Icon(
-                      PhosphorIconsRegular.user,
-                      color: Colors.white.withOpacity(0.5),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                ),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
               ),
             ),
           ),
@@ -746,27 +687,17 @@ class _LanguageOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? const Color(0xFF2C2C2E).withOpacity(0.8)
-                  : const Color(0xFF2C2C2E).withOpacity(0.4),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isSelected
-                    ? Colors.white.withOpacity(0.5)
-                    : Colors.white.withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
+      child: AnimatedContainer(
+        duration: AppStyles.animationDuration,
+        curve: AppStyles.animationCurve,
+        padding: const EdgeInsets.all(20),
+        decoration: AppStyles.surfaceDecoration(
+          color: isSelected
+              ? Theme.of(context).primaryColor.withOpacity(0.10)
+              : AppStyles.surfaceDeep,
+        ),
+        child: Row(
+          children: [
                 Text(
                   flag,
                   style: const TextStyle(fontSize: 32),
@@ -780,8 +711,10 @@ class _LanguageOption extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          fontFamily: AppStyles.fontFamily,
+                          letterSpacing: -0.4,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -790,20 +723,19 @@ class _LanguageOption extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.6),
                           fontSize: 13,
+                          fontFamily: AppStyles.fontFamily,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  const Icon(
+                  Icon(
                     PhosphorIconsBold.checkCircle,
-                    color: Colors.white,
-                    size: 24,
+                    color: Theme.of(context).primaryColor,
+                    size: 22,
                   ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -857,11 +789,7 @@ class _RestoreAccountFlowState extends State<_RestoreAccountFlow> {
       children: [
         // Ensure background is visible under RecoveryPhraseScreen
         SizedBox.expand(
-          child: Image.asset(
-            'assets/images/secondb.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(color: Colors.black),
-          ),
+          child: Container(color: AppStyles.backgroundOled),
         ),
 
         RecoveryPhraseScreen(
@@ -885,47 +813,41 @@ class _RestoreAccountFlowState extends State<_RestoreAccountFlow> {
             top: MediaQuery.of(context).padding.top + 20,
             left: 20,
             right: 20,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.red.withOpacity(0.5)),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: AppStyles.surfaceDecoration(
+                borderRadius: 18,
+                color: Colors.red.withOpacity(0.12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    PhosphorIconsRegular.warningCircle,
+                    color: Colors.red.shade200,
+                    size: 20,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        PhosphorIconsRegular.warningCircle,
-                        color: Colors.red.shade200,
-                        size: 20,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Colors.red.shade100,
+                        fontSize: 14,
+                        fontFamily: AppStyles.fontFamily,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: TextStyle(
-                            color: Colors.red.shade100,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() => _error = null),
-                        icon: Icon(
-                          PhosphorIconsRegular.x,
-                          color: Colors.red.shade200,
-                          size: 18,
-                        ),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  IconButton(
+                    onPressed: () => setState(() => _error = null),
+                    icon: Icon(
+                      PhosphorIconsRegular.x,
+                      color: Colors.red.shade200,
+                      size: 18,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ),
           ),

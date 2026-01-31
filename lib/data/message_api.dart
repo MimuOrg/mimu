@@ -55,6 +55,7 @@ class MessageApi {
 
   /// Edit message (encrypted payload replaced). Backend: POST /api/v1/messages/{id}/edit
   Future<void> editMessage({
+    required String chatId,
     required String messageId,
     required String encryptedPayloadBase64,
   }) async {
@@ -102,13 +103,36 @@ class MessageApi {
     await _dio.delete('/api/v1/chats/$chatId/pin');
   }
 
+  /// Add reaction. Backend: POST /api/v1/messages/{id}/reactions
+  Future<void> addReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    await _dio.post(
+      '/api/v1/messages/$messageId/reactions',
+      data: {'emoji': emoji},
+    );
+  }
+
+  /// Remove reaction. Backend: DELETE /api/v1/messages/{id}/reactions
+  Future<void> removeReaction({
+    required String messageId,
+    required String emoji,
+  }) async {
+    await _dio.delete(
+      '/api/v1/messages/$messageId/reactions',
+      queryParameters: {'emoji': emoji},
+    );
+  }
+
   /// Send plain text (encrypts via E2EE then sendMessage). For queue/offline use.
+  /// Warning: Assumes 1-to-1 chat where chatId is the recipient User ID.
   Future<Map<String, dynamic>> sendTextMessage({
     required String chatId,
     required String text,
     String? replyToMessageId,
   }) async {
-    final encrypted = await MessageE2EE.encryptJsonForChat(chatId, {'t': 'text', 'text': text});
+    final encrypted = await MessageE2EE.encryptJsonForOneToOne(chatId, {'t': 'text', 'text': text});
     return sendMessage(
       chatId: chatId,
       messageType: 'text',

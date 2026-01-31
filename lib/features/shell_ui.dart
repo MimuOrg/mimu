@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:mimu/data/chat_store.dart';
@@ -26,14 +27,7 @@ import 'package:mimu/features/create_entities.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 
-const _secondBackgroundPattern = DecorationImage(
-  image: AssetImage('assets/images/secondb.png'),
-  fit: BoxFit.cover,
-  repeat: ImageRepeat.repeat,
-  colorFilter: ColorFilter.mode(Colors.white24, BlendMode.srcOver),
-);
-
-const Duration _kAnimationDuration = Duration(milliseconds: 150);
+const Duration _kAnimationDuration = AppStyles.animationDuration;
 class BannerManager {
   static final BannerManager _instance = BannerManager._internal();
   factory BannerManager() => _instance;
@@ -58,15 +52,13 @@ class BannerManager {
         left: 18,
         right: 18,
         child: GlassContainer(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.06), width: 0.5),
+          decoration: AppStyles.surfaceDecoration(
             boxShadow: [
               BoxShadow(
-                  color: Colors.black.withOpacity(0.35),
-                  blurRadius: 24,
-                  offset: const Offset(0, 4)),
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
             ],
           ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
@@ -190,14 +182,14 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
         child: GlassContainer(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border(
-              top: BorderSide(color: Colors.white.withOpacity(0.06), width: 0.5),
+            color: AppStyles.surfaceDeep,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppStyles.radiusStandard)),
+            border: const Border(
+              top: BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.35),
+                color: Colors.black.withOpacity(0.4),
                 blurRadius: 32,
                 offset: const Offset(0, -8),
               ),
@@ -217,18 +209,9 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
         constraints: BoxConstraints.expand(),
         child: Stack(
           children: [
-          // Background
-          Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/images/secondb.png"),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
+          // Background: OLED Black, no pattern (per .cursorrules)
+          Container(
+            color: AppStyles.backgroundOled,
           ),
           // Overlay для поиска - без блюра, просто затемнение
           if (_isSearchActive)
@@ -253,11 +236,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.04), width: 0.5),
-                      ),
+                      decoration: AppStyles.surfaceDecoration(),
                       child: Row(
                         children: [
                           Expanded(
@@ -293,20 +272,20 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
                                       decoration: InputDecoration(
                                         hintText: "Поиск...",
                                         filled: true,
-                                        fillColor: Colors.white.withOpacity(0.08),
+                                        fillColor: AppStyles.surfaceDeep,
                                         isDense: true,
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                         border: OutlineInputBorder(
-                                          borderSide: BorderSide(color: Colors.white.withOpacity(0.06), width: 0.5),
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: const BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+                                          borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
                                         ),
                                         enabledBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(color: Colors.white.withOpacity(0.06), width: 0.5),
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: const BorderSide(color: AppStyles.borderColor, width: AppStyles.borderWidth),
+                                          borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
                                         ),
                                         focusedBorder: OutlineInputBorder(
-                                          borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.4), width: 1),
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.5), width: 1),
+                                          borderRadius: BorderRadius.circular(AppStyles.radiusStandard),
                                         ),
                                         prefixIcon: const Icon(CupertinoIcons.search, size: 18),
                                         suffixIcon: (_searchController.text.isNotEmpty)
@@ -561,13 +540,9 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
         });
       },
       child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.18)),
-          color: Colors.black.withOpacity(0.55),
-        ),
+        width: 44,
+        height: 44,
+        decoration: AppStyles.surfaceDecoration(borderRadius: 22),
         child: Center(child: icon),
       ),
     );
@@ -592,7 +567,8 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
           height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withOpacity(0.1),
+            color: AppStyles.surfaceDeep,
+            border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
           ),
           child: const Icon(CupertinoIcons.add, color: Colors.white, size: 24),
         ),
@@ -616,7 +592,8 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
           height: 44,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Theme.of(context).primaryColor.withOpacity(0.2),
+            color: AppStyles.surfaceDeep,
+            border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
           ),
           child: Icon(
             CupertinoIcons.checkmark_seal_fill,
@@ -632,7 +609,6 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
   void _showCreateMenu(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
       builder: (context) => CupertinoActionSheet(
         title: const Text('Создать'),
         actions: [
@@ -687,7 +663,6 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
 
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
       builder: (ctx) => CupertinoActionSheet(
         title: const Text('Выберите контакт'),
         message: const Text('Секретные чаты используют сквозное шифрование'),
@@ -773,10 +748,7 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
       onLongPressCancel: _cancelNavDrag,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          color: Colors.white.withOpacity(0.1),
-        ),
+        decoration: AppStyles.surfaceDecoration(borderRadius: 24),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -806,8 +778,8 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
             height: 44,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
-              color: Colors.black.withOpacity(0.7),
-              border: Border.all(color: Colors.white.withOpacity(0.25)),
+              color: AppStyles.surfaceDeep,
+              border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.18),
@@ -847,19 +819,14 @@ class _ShellUIState extends State<ShellUI> with SingleTickerProviderStateMixin {
           onTap: () => setState(() => _selectedCategory = label),
           child: GlassContainer(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration:
-                Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-                      color: selected
-                          ? Theme.of(context).primaryColor.withOpacity(0.12)
-                          : Colors.white.withOpacity(0.04),
-                      border: Border.all(
-                        color: selected
-                            ? Theme.of(context).primaryColor.withOpacity(0.35)
-                            : Colors.white.withOpacity(0.06),
-                        width: selected ? 1.2 : 0.5,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+            decoration: AppStyles.surfaceDecoration(
+              color: selected
+                  ? Theme.of(context).primaryColor.withOpacity(0.15)
+                  : AppStyles.surfaceDeep,
+              border: selected
+                  ? Border.all(color: Theme.of(context).primaryColor.withOpacity(0.4), width: 1)
+                  : null,
+            ),
             child: Text(
               label,
               style: TextStyle(
@@ -1195,6 +1162,8 @@ class _ChatListPage extends StatelessWidget {
         return '📊 Опрос';
       case ChatMessageType.sticker:
         return '🎭 Стикер';
+      case ChatMessageType.video:
+        return '🎥 Видео';
     }
   }
 
@@ -1752,12 +1721,7 @@ class _BrowserPageStatefulState extends State<_BrowserPageStateful> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage("assets/images/secondb.png"),
-          fit: BoxFit.cover,
-        ),
-      ),
+      color: AppStyles.backgroundOled,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.start,
@@ -1778,7 +1742,8 @@ class _BrowserPageStatefulState extends State<_BrowserPageStateful> {
                         width: 98,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.06),
+                          color: AppStyles.surfaceDeep,
+                          border: Border.all(color: AppStyles.borderColor, width: AppStyles.borderWidth),
                         ),
                       ),
                       Image.asset(

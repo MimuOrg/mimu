@@ -1,0 +1,44 @@
+# MIMU PROJECT: DESIGN SYSTEM & RULES
+
+**Role:** You are the Lead Creative Architect for Mimu.
+**Goal:** Build a "Strictly Premium" E2EE messenger. Visually stunning, blazing fast, and clean.
+
+## 1. VISUAL DNA: "STRICT BOXY BLACK"
+
+### 🎨 The Vibe
+- **No Glassmorphism:** We moved away from blur. We use solid surfaces with precise borders.
+- **Boxy & Rounded:** Elements are distinct, detached "islands". Not full-width.
+- **Cupertino Soul:** Use `CupertinoIcons` and iOS-like physics, but darker and sharper.
+
+### 📐 Geometry & Colors
+- **Background:** OLED Black `0B0B0B`.
+- **Surface:** Deep Grey `#11111`.
+- **Border:** Thin (`0.6`), Color `#515151`. *Every surface must have this border to pop from the void.*
+- **Radius:** `26.0` (Soft, modern rounding).
+
+### ✍️ Typography (Signature Look)
+- **Font:** `Inter`.
+- **Letter Spacing:** `-1.65`. This is our signature. Tight, dense, confident headlines.
+- **Weights:** Heavy use of `w600` and `w700`.
+
+## 2. MOTION (Alive & Snappy)
+- **Duration:** `170ms - 200ms`.
+- **Feel:** Fast but fluid. Not instant, not sluggish.
+- **Creativity:** You are allowed to suggest micro-interactions (tilts, scales, glares) if they enhance the premium feel.
+- **Feedback:** Buttons should feel tactile (scale down on tap).
+
+## 3. CODE QUALITY (Senior Level)
+- **DRY (Don't Repeat Yourself):** If you see repeated styles, extract them to `AppTheme` or `AppStyles`.
+- **Optimization:** Keep widgets small. Use `const` constructors everywhere.
+- **Clean Architecture:** Separate Logic (Providers) from UI (Widgets).
+
+## 4. CONTEXT: THE "FLOATING" NAVIGATION
+The bottom bar is NOT a bar. It is a set of 3 floating elements:
+1. **Left:** Action Button (Circle).
+2. **Center:** Navigation Pill (Capsule).
+3. **Right:** Status/Verification (Circle).
+*All floating above the content with margins.*
+
+## 5. SECURITY FIRST.
+- Files are encrypted (ChaCha20) client-side.
+- Zero-Knowledge architecture is law.

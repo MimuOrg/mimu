@@ -8,6 +8,9 @@ import 'package:mimu/data/server_config.dart';
 import 'package:mimu/data/user_service.dart';
 import 'package:mimu/data/services/crypto_auth_service.dart';
 import 'package:mimu/data/services/bip39_wordlists.dart';
+import 'package:mimu/data/services/signal_service.dart';
+
+import 'package:mimu/data/user_api.dart';
 
 /// Authentication method types
 enum AuthMethod {
@@ -161,10 +164,23 @@ class AuthService {
       // Generate keys from current mnemonic
       final keyPair = _cryptoService.generateKeys();
 
+      // Initialize Signal Identity Key
+      final signalIdentityKey = _cryptoService.deriveSignalIdentityKey();
+
+      SignalService().setIdentityKey(signalIdentityKey);
+
+      // Generate PreKeys (X3DH)
+      final preKeys = await SignalService().generatePreKeys(
+        1, // startId
+        20, // count
+        keyPair, // authKeyPair for signing
+      );
+
       // Register with server
       final response = await _cryptoService.register(
         displayName: displayName,
         language: language,
+        preKeys: preKeys, // We need to update CryptoAuthService.register to accept this
       );
 
       // Save auth data
@@ -205,6 +221,10 @@ class AuthService {
       // Validate and restore keys from mnemonic
       final keyPair = _cryptoService.restoreKeysFromMnemonic(mnemonic, language: language);
 
+      // Initialize Signal Identity Key
+      final signalIdentityKey = _cryptoService.deriveSignalIdentityKey();
+      SignalService().setIdentityKey(signalIdentityKey);
+
       // Perform challenge-response authentication
       final response = await _cryptoService.authenticate();
 
@@ -216,6 +236,14 @@ class AuthService {
         fingerprint: response.fingerprint,
         publicKey: keyPair.publicKeyBase64,
       );
+      
+      // Upload new PreKeys to ensure E2EE works on this device
+      try {
+        final preKeys = await SignalService().generatePreKeys(1, 20, keyPair);
+        await UserApi().uploadPreKeys(preKeys);
+      } catch (e) {
+        debugPrint('Warning: Failed to upload new PreKeys on restore: $e');
+      }
 
       _updateState(AuthState.authenticated);
 

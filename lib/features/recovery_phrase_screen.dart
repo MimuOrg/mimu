@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'package:mimu/data/services/crypto_auth_service.dart';
 import 'package:mimu/data/services/bip39_wordlists.dart';
+import 'package:mimu/shared/app_styles.dart';
 
 /// Mode for the recovery phrase screen
 enum RecoveryPhraseMode {
@@ -233,7 +232,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
     final isDisplayMode = widget.mode == RecoveryPhraseMode.display;
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Transparent to show parent background
+      backgroundColor: AppStyles.backgroundOled,
       body: Stack(
         children: [
           // Main content
@@ -330,33 +329,27 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
 
           if (isDisplayMode) ...[
             const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(PhosphorIconsRegular.warning, color: Colors.orange.shade300, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Never share this phrase with anyone. Mimu staff will never ask for it.',
-                          style: TextStyle(
-                            color: Colors.orange.shade200,
-                            fontSize: 13,
-                          ),
-                        ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: AppStyles.surfaceDecoration(
+                borderRadius: 18,
+                color: Colors.orange.withOpacity(0.10),
+              ),
+              child: Row(
+                children: [
+                  Icon(PhosphorIconsRegular.warning, color: Colors.orange.shade300, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Never share this phrase with anyone. Mimu staff will never ask for it.',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 13,
+                        fontFamily: AppStyles.fontFamily,
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ).animate().fadeIn(duration: 300.ms, delay: 200.ms),
           ],
@@ -368,39 +361,28 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   Widget _buildLanguageSelector() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2C2C2E).withOpacity(0.6),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Row(
-              children: [
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: AppStyles.surfaceDecoration(borderRadius: 18),
+        child: Row(
+          children: [
                 Text(
                   'Phrase Language:',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
+                    fontSize: 13,
+                    fontFamily: AppStyles.fontFamily,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
-                  ),
+                  decoration: AppStyles.surfaceDecoration(borderRadius: 18),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<MnemonicLanguage>(
                       value: _selectedLanguage,
-                      dropdownColor: const Color(0xFF2C2C2E),
-                      style: const TextStyle(color: Colors.white),
+                      dropdownColor: AppStyles.surfaceDeep,
+                      style: const TextStyle(color: Colors.white, fontFamily: AppStyles.fontFamily),
                       icon: Icon(
                         PhosphorIconsRegular.caretDown,
                         color: Colors.white.withOpacity(0.7),
@@ -438,9 +420,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
                       foregroundColor: Colors.white.withOpacity(0.7),
                     ),
                   ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     ).animate().fadeIn(duration: 300.ms, delay: 150.ms);
@@ -476,32 +456,22 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
           ),
 
         // Word grid (2 columns x 6 rows)
-        ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2C2C2E).withOpacity(0.6),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Column(
-                children: List.generate(6, (row) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: row < 5 ? 12 : 0),
-                    child: Row(
-                      children: [
-                        _buildWordField(row * 2, isDisplayMode),
-                        const SizedBox(width: 12),
-                        _buildWordField(row * 2 + 1, isDisplayMode),
-                      ],
-                    ),
-                  );
-                }),
-              ),
-            ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: AppStyles.surfaceDecoration(borderRadius: 18),
+          child: Column(
+            children: List.generate(6, (row) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: row < 5 ? 12 : 0),
+                child: Row(
+                  children: [
+                    _buildWordField(row * 2, isDisplayMode),
+                    const SizedBox(width: 12),
+                    _buildWordField(row * 2 + 1, isDisplayMode),
+                  ],
+                ),
+              );
+            }),
           ),
         ).animate().fadeIn(duration: 400.ms, delay: 200.ms).scale(begin: const Offset(0.95, 0.95)),
       ],
@@ -640,27 +610,12 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
       left: 20,
       right: 20,
       bottom: 100,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2C2C2E).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: _suggestions.asMap().entries.map((entry) {
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: AppStyles.surfaceDecoration(borderRadius: 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _suggestions.asMap().entries.map((entry) {
                 final idx = entry.key;
                 final word = entry.value;
                 final isSelected = idx == _activeSuggestionIndex;
@@ -683,9 +638,7 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
                     ),
                   ),
                 );
-              }).toList(),
-            ),
-          ),
+          }).toList(),
         ),
       ),
     ).animate().fadeIn(duration: 150.ms);
@@ -694,19 +647,14 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
   Widget _buildErrorMessage() {
     return Padding(
       padding: const EdgeInsets.all(20),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.red.withOpacity(0.5)),
-            ),
-            child: Row(
-              children: [
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: AppStyles.surfaceDecoration(
+          borderRadius: 18,
+          color: Colors.red.withOpacity(0.12),
+        ),
+        child: Row(
+          children: [
                 Icon(PhosphorIconsRegular.warningCircle, color: Colors.red.shade300, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
@@ -715,12 +663,11 @@ class _RecoveryPhraseScreenState extends State<RecoveryPhraseScreen> {
                     style: TextStyle(
                       color: Colors.red.shade200,
                       fontSize: 14,
+                      fontFamily: AppStyles.fontFamily,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
+          ],
         ),
       ),
     );

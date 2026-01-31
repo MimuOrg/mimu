@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -277,7 +276,6 @@ class _BrowserViewState extends State<BrowserView> {
   void _showBrowserMenu(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
       builder: (context) => buildCupertinoActionSheet(
         context: context,
         actions: [

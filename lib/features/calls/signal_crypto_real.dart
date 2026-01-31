@@ -162,7 +162,7 @@ class RealSignalCrypto implements SignalCrypto {
     // Verify tag (constant-time comparison)
     final hmac = Hmac(sha256, key);
     final expectedTag = hmac.convert([...nonce, ...ciphertext].toList()).bytes;
-    if (!_constantTimeEquals(tag, expectedTag)) {
+    if (!_constantTimeEquals(tag, Uint8List.fromList(expectedTag))) {
       throw StateError('Authentication failed: invalid tag');
     }
     

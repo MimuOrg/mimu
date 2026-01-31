@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-enum ChatMessageType { text, image, voice, file, call, location, poll, sticker }
+enum ChatMessageType { text, image, voice, file, call, location, poll, sticker, video }
 
 enum ChatType { regular, secret, cloud, group, channel }
 
@@ -207,6 +207,18 @@ class ChatThread {
       'participantRole': participantRole?.name,
       'pinnedMessageId': pinnedMessageId,
     };
+  }
+
+  factory ChatThread.empty() {
+    return ChatThread(
+      id: '',
+      title: '',
+      avatarAsset: '',
+      isGroup: false,
+      participantIds: [],
+      messages: [],
+      updatedAt: DateTime.now(),
+    );
   }
 
   factory ChatThread.fromJson(Map<String, dynamic> json) {

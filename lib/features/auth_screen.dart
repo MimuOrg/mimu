@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:mimu/app/routes.dart';
 import 'package:mimu/features/shell_ui.dart';
@@ -11,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/services.dart';
 import 'package:mimu/data/services/auth_service.dart';
+import 'package:mimu/shared/app_styles.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -221,23 +221,19 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppStyles.backgroundOled,
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/background_pattern.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
+            color: AppStyles.backgroundOled,
           ),
           SafeArea(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
+              duration: AppStyles.animationDuration,
               transitionBuilder: (child, animation) {
                 final curved = CurvedAnimation(
                   parent: animation,
-                  curve: Curves.easeInOutCubic,
+                  curve: AppStyles.animationCurve,
                 );
                 return FadeTransition(
                   opacity: curved,

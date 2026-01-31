@@ -1,13 +1,14 @@
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 import 'package:mimu/shared/animated_widgets.dart';
 import 'package:mimu/shared/cupertino_dialogs.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:mimu/features/calls/call_controller.dart';
 
 class CallScreen extends StatefulWidget {
   final String userName;
@@ -34,6 +35,8 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
   late AnimationController _pulseController;
   bool _microphoneGranted = false;
   bool _cameraGranted = false;
+  
+  final _callController = CallController();
 
   @override
   void initState() {
@@ -43,6 +46,12 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
       duration: const Duration(seconds: 2),
     )..repeat();
     _precheckPermissions();
+    _isVideoEnabled = widget.isVideoCall;
+    
+    // Listen for remote stream updates to refresh UI
+    _callController.webrtc.onRemoteStream = (stream) {
+      if (mounted) setState(() {});
+    };
   }
 
   @override
@@ -52,7 +61,6 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _precheckPermissions() async {
-    // Запрос заранее, чтобы кнопки не казались сломанными
     _microphoneGranted = await _ensurePermission(Permission.microphone, silent: true);
     if (widget.isVideoCall) {
       _cameraGranted = await _ensurePermission(Permission.camera, silent: true);
@@ -63,18 +71,24 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppStyles.backgroundOled,
       body: Stack(
         children: [
-          // Background
-          Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/background_pattern.png"),
-                fit: BoxFit.cover,
+          // Background / Remote Video
+          if (widget.isVideoCall && _callController.webrtc.remoteRenderer.srcObject != null)
+            Positioned.fill(
+              child: RTCVideoView(
+                _callController.webrtc.remoteRenderer,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+              ),
+            )
+          else
+            Positioned.fill(
+              child: Container(
+                color: AppStyles.backgroundOled,
               ),
             ),
-          ),
+
           SafeArea(
             child: Column(
               children: [
@@ -84,191 +98,130 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        icon: const Icon(CupertinoIcons.chevron_left),
-                        onPressed: () => Navigator.of(context).pop(),
-                        color: Colors.white,
-                      ),
                       GlassIconButton(
-                        icon: CupertinoIcons.ellipsis_vertical,
+                        icon: CupertinoIcons.chevron_down,
                         onPressed: () {
-                          _showCallMenu(context);
+                          // Minimize call (just pop, call continues)
+                          Navigator.of(context).pop(); 
                         },
                       ),
+                      if (widget.isVideoCall)
+                         GlassIconButton(
+                           icon: CupertinoIcons.camera_rotate,
+                           onPressed: _switchCamera,
+                         ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                // Avatar
-                AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Container(
-                      width: 180,
-                      height: 180,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).primaryColor.withOpacity(
-                            0.3 + (_pulseController.value * 0.3),
+                
+                // Content (Avatar or Spacer)
+                if (!widget.isVideoCall || _callController.webrtc.remoteRenderer.srcObject == null) ...[
+                  const Spacer(),
+                  AnimatedBuilder(
+                    animation: _pulseController,
+                    builder: (context, child) {
+                      return Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).primaryColor.withOpacity(
+                              0.3 + (_pulseController.value * 0.3),
+                            ),
+                            width: 3,
                           ),
-                          width: 3,
                         ),
-                      ),
-                      child: CircleAvatar(
-                        radius: 87,
-                        backgroundImage: _avatarProvider(),
-                      ),
-                    );
-                  },
-                ).animate().scale(delay: 200.ms, duration: 600.ms, curve: Curves.elasticOut),
-                const SizedBox(height: 24),
-                // Name
-                Text(
-                  widget.userName,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                        child: CircleAvatar(
+                          radius: 87,
+                          backgroundImage: _avatarProvider(),
+                        ),
+                      );
+                    },
                   ),
-                ).animate().fadeIn(delay: 300.ms),
-                const SizedBox(height: 8),
-                Text(
-                  widget.isVideoCall ? 'Видеозвонок через Mimu' : 'Звонок через Mimu',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white.withOpacity(0.7),
+                  const SizedBox(height: 24),
+                  Text(
+                    widget.userName,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      fontFamily: AppStyles.fontFamily,
+                      letterSpacing: AppStyles.letterSpacingSignature,
+                    ),
                   ),
-                ).animate().fadeIn(delay: 400.ms),
-                if (widget.isVideoCall)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: GlassContainer(
-                      padding: const EdgeInsets.all(12),
-                      child: SizedBox(
-                        height: 160,
-                        child: Center(
-                          child: _isVideoEnabled && _cameraGranted
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(CupertinoIcons.videocam_circle_fill, size: 42, color: Colors.white70),
-                                    SizedBox(height: 8),
-                                    Text('Превью камеры активно', style: TextStyle(color: Colors.white70)),
-                                  ],
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(CupertinoIcons.videocam_fill, size: 38, color: Colors.white54),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      _cameraGranted ? 'Видео выключено' : 'Нет доступа к камере',
-                                      style: const TextStyle(color: Colors.white60),
-                                    ),
-                                  ],
-                                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mimu Audio Call',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.8),
+                      fontFamily: AppStyles.fontFamily,
+                    ),
+                  ),
+                  const Spacer(),
+                ] else 
+                  const Spacer(),
+
+                // Local Video (PIP)
+                if (widget.isVideoCall && _isVideoEnabled && _callController.webrtc.localRenderer.srcObject != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16, bottom: 16),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: SizedBox(
+                          width: 120,
+                          height: 160,
+                          child: RTCVideoView(
+                            _callController.webrtc.localRenderer,
+                            mirror: true,
+                            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                const Spacer(),
-                // Call controls
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+                // Controls
+                GlassContainer(
+                  margin: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildControlButton(
-                        icon: _isMuted ? CupertinoIcons.mic_slash_fill : CupertinoIcons.mic_fill,
-                        onPressed: _toggleMic,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      _buildControlButton(
-                        icon: _isSpeakerOn ? CupertinoIcons.speaker_2_fill : CupertinoIcons.speaker_1_fill,
-                        onPressed: _toggleSpeaker,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      if (widget.isVideoCall)
-                        _buildControlButton(
-                          icon: _isVideoEnabled ? CupertinoIcons.videocam_fill : CupertinoIcons.videocam,
-                          onPressed: _toggleVideo,
-                          color: Colors.white.withOpacity(0.2),
-                        ),
-                      _buildControlButton(
-                        icon: CupertinoIcons.ellipsis,
-                        onPressed: () {
-                          _showCallMenu(context);
-                        },
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                    ],
-                  ),
-                ),
-                // Main call buttons
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 32),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Decline/End button
-                      GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildControlButton(
+                            icon: _isMuted ? CupertinoIcons.mic_slash_fill : CupertinoIcons.mic_fill,
+                            onPressed: _toggleMic,
+                            color: _isMuted ? Colors.white : AppStyles.surfaceDeep,
+                            iconColor: _isMuted ? Colors.black : Colors.white,
+                          ),
+                          _buildControlButton(
+                            icon: _isSpeakerOn ? CupertinoIcons.speaker_2_fill : CupertinoIcons.speaker_1_fill,
+                            onPressed: _toggleSpeaker,
+                            color: _isSpeakerOn ? Colors.white : AppStyles.surfaceDeep,
+                            iconColor: _isSpeakerOn ? Colors.black : Colors.white,
+                          ),
+                          if (widget.isVideoCall)
+                            _buildControlButton(
+                              icon: _isVideoEnabled ? CupertinoIcons.videocam_fill : CupertinoIcons.video_camera_solid,
+                              onPressed: _toggleVideo,
+                              color: _isVideoEnabled ? AppStyles.surfaceDeep : Colors.white,
+                              iconColor: _isVideoEnabled ? Colors.white : Colors.black,
+                            ),
+                          _buildControlButton(
+                            icon: CupertinoIcons.phone_down_fill,
+                            onPressed: _endCall,
                             color: Colors.redAccent,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.redAccent.withOpacity(0.4),
-                                blurRadius: 20,
-                                spreadRadius: 4,
-                              ),
-                            ],
+                            iconColor: Colors.white,
+                            size: 64,
                           ),
-                          child: const Icon(
-                            CupertinoIcons.phone_down_fill,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      ).animate().scale(delay: 500.ms, duration: 400.ms, curve: Curves.elasticOut),
-                      const SizedBox(width: 32),
-                      // Answer/Accept button
-                      GestureDetector(
-                        onTap: () async {
-                          if (!_microphoneGranted) {
-                            _microphoneGranted = await _ensurePermission(Permission.microphone);
-                          }
-                          if (widget.isVideoCall && !_cameraGranted) {
-                            _cameraGranted = await _ensurePermission(Permission.camera);
-                          }
-                          if (!mounted) return;
-                          Navigator.of(context).pop(true);
-                        },
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Theme.of(context).primaryColor,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(context).primaryColor.withOpacity(0.4),
-                                blurRadius: 20,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            CupertinoIcons.phone_fill,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      ).animate().scale(delay: 600.ms, duration: 400.ms, curve: Curves.elasticOut),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -284,31 +237,21 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
     required IconData icon,
     required VoidCallback onPressed,
     required Color color,
+    required Color iconColor,
+    double size = 48,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onPressed,
-        child: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, color: Colors.white, size: 22),
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
         ),
+        child: Icon(icon, color: iconColor, size: size * 0.5),
       ),
-    ).animate()
-      .scale(delay: 100.ms, duration: 200.ms, curve: Curves.elasticOut);
+    );
   }
 
   ImageProvider _avatarProvider() {
@@ -324,31 +267,7 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
 
   Future<bool> _ensurePermission(Permission permission, {bool silent = false}) async {
     final status = await permission.request();
-    final granted = status == PermissionStatus.granted || status == PermissionStatus.limited;
-    if (!granted && !silent && mounted) {
-      String permissionName = 'разрешение';
-      if (permission == Permission.microphone) {
-        permissionName = 'доступ к микрофону';
-      } else if (permission == Permission.camera) {
-        permissionName = 'доступ к камере';
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Нужен $permissionName для работы функции. Откройте настройки, чтобы предоставить доступ.'),
-          duration: const Duration(seconds: 4),
-          backgroundColor: Colors.orangeAccent,
-          action: SnackBarAction(
-            label: 'Настройки',
-            textColor: Colors.white,
-            onPressed: () async {
-              await openAppSettings();
-            },
-          ),
-        ),
-      );
-    }
-    return granted;
+    return status == PermissionStatus.granted || status == PermissionStatus.limited;
   }
 
   Future<void> _toggleMic() async {
@@ -357,80 +276,34 @@ class _CallScreenState extends State<CallScreen> with SingleTickerProviderStateM
       if (!_microphoneGranted) return;
     }
     setState(() => _isMuted = !_isMuted);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_isMuted ? 'Микрофон выключен' : 'Микрофон включен')),
-    );
+    await _callController.webrtc.setMicrophoneMute(_isMuted);
   }
 
   Future<void> _toggleSpeaker() async {
     setState(() => _isSpeakerOn = !_isSpeakerOn);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(_isSpeakerOn ? 'Громкая связь включена' : 'Громкая связь выключена')),
-    );
+    await _callController.webrtc.setSpeakerphoneOn(_isSpeakerOn);
   }
 
   Future<void> _toggleVideo() async {
     if (!_cameraGranted) {
       _cameraGranted = await _ensurePermission(Permission.camera);
-      if (!_cameraGranted) {
-        setState(() => _isVideoEnabled = false);
-        return;
-      }
+      if (!_cameraGranted) return;
     }
     setState(() => _isVideoEnabled = !_isVideoEnabled);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isVideoEnabled ? 'Видео включено' : 'Видео выключено'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-    }
+    await _callController.webrtc.setVideoEnabled(_isVideoEnabled);
   }
-
-  void _showCallMenu(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
-      builder: (context) => buildCupertinoActionSheet(
-        context: context,
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Информация о контакте')),
-              );
-            },
-            child: const Text('Информация о контакте'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Открытие чата')),
-              );
-            },
-            child: const Text('Написать сообщение'),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Повторный звонок')),
-              );
-            },
-            child: const Text('Повторный звонок'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDestructiveAction: false,
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Отмена'),
-        ),
-      ),
-    );
+  
+  Future<void> _switchCamera() async {
+     await _callController.webrtc.switchCamera();
+  }
+  
+  Future<void> _endCall() async {
+    // Hangup current call
+    // We assume currentCallId is stored in WebRTCService, but hangup needs args.
+    // CallController tracks peers.
+    // For simplicity, we can use CallKit's endAll or webrtc.dispose.
+    // Better to use CallKitService onEnd logic which triggers hangup.
+    await _callController.callKit.endAll(); 
+    if (mounted) Navigator.of(context).pop();
   }
 }
-

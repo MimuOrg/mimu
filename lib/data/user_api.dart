@@ -8,6 +8,40 @@ class UserApi {
 
   final _dio = DioApiClient().dio;
 
+  /// Get PreKeys bundle for a user (for Signal Protocol X3DH).
+  Future<Map<String, dynamic>> getPreKeys(String publicId) async {
+    final resp = await _dio.get('/users/$publicId/prekeys');
+    return resp.data is Map ? Map<String, dynamic>.from(resp.data as Map) : {};
+  }
+
+  /// Upload new PreKeys (for account recovery or key rotation).
+  Future<void> uploadPreKeys(Map<String, dynamic> keys) async {
+    await _dio.post('/users/me/prekeys', data: keys);
+  }
+
+  /// Search users by public_id (username)
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final resp = await _dio.get(
+      '/users/search',
+      queryParameters: {'q': query},
+    );
+    final data = resp.data is Map ? Map<String, dynamic>.from(resp.data as Map) : {};
+    // Server returns list of items
+    // According to SERVER_OVERVIEW.md: Response is array of UserSearchItem
+    // But dio response.data might be the list itself if server returns JSON array directly
+    // OR it might be wrapped.
+    // SERVER_OVERVIEW says "Ответ: Массив UserSearchItem".
+    // Usually standard is { success: true, data: [...] } or just [...]
+    // Let's assume list for now, but handle map wrapper just in case
+    
+    if (resp.data is List) {
+      return (resp.data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } else if (data['users'] is List) {
+      return (data['users'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
   /// Профиль пользователя (публичный; is_online/last_seen с учётом settings.show_online)
   Future<Map<String, dynamic>> getProfile(String publicId) async {
     final resp = await _dio.get('/users/$publicId');

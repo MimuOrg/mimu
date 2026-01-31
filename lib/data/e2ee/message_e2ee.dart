@@ -1,64 +1,179 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'package:mimu/data/services/signal_service.dart';
+import 'package:mimu/data/user_api.dart';
+import 'package:mimu/data/user_service.dart';
+import 'package:mimu/features/calls/signal_double_ratchet.dart';
+import 'package:mimu/features/calls/sender_key_crypto.dart';
+import 'package:mimu/features/calls/signal_crypto_real.dart';
 
-import 'package:cryptography/cryptography.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+class DistributionMessage {
+  final String recipientId;
+  final String payload; // Encrypted for recipient
+  DistributionMessage(this.recipientId, this.payload);
+}
 
-/// Minimal E2EE for messages: per-chat symmetric key (32 bytes) + ChaCha20-Poly1305.
-///
-/// NOTE: This provides encrypted_payload end-to-end only if peers have the same chat key.
-/// Key distribution (Signal sessions) should replace this later.
+/// E2EE for messages using Signal Protocol (Double Ratchet).
+/// Replaces the legacy symmetric key implementation.
 class MessageE2EE {
-  static const _keyPrefix = 'e2ee_chat_key_v1_';
-  static final _cipher = Chacha20.poly1305Aead();
-
-  static Future<SecretKey> _getOrCreateChatKey(String chatId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final b64 = prefs.getString('$_keyPrefix$chatId');
-    if (b64 != null && b64.isNotEmpty) {
-      return SecretKey(base64Decode(b64));
+  /// Encrypt JSON payload for 1-to-1 chat using Signal Protocol (Double Ratchet).
+  /// [recipientUserId] must be the User ID of the recipient (not Chat ID).
+  static Future<String> encryptJsonForOneToOne(String recipientUserId, Map<String, dynamic> payload) async {
+    final peerId = recipientUserId;
+    
+    final plaintext = jsonEncode(payload);
+    
+    // SignalService.crypto is the singleton instance
+    final signal = SignalService().crypto;
+    
+    try {
+      // Try to encrypt immediately (assuming session exists)
+      if (signal is RealSignalCrypto) {
+         return await signal.encryptForPeer(plaintext, peerId);
+      } else {
+         return signal.encryptToBase64(plaintext); // Fallback or throw
+      }
+    } catch (e) {
+      // If session missing, fetch PreKeys and initialize X3DH
+      if (e.toString().contains('No session') && signal is DoubleRatchetSignalCrypto) {
+        try {
+          print('E2EE: No session for $peerId, fetching PreKeys...');
+          
+          // 1. Fetch PreKey Bundle from server
+          final preKeyBundle = await UserApi().getPreKeys(peerId);
+          if (preKeyBundle.isEmpty) {
+             throw Exception('Failed to fetch PreKeys for user $peerId');
+          }
+          
+          // 2. Initialize Session (X3DH)
+          await signal.initializeSession(peerId, preKeyBundle);
+          print('E2EE: Session initialized for $peerId');
+          
+          // 3. Retry encryption
+          return signal.encryptToBase64(plaintext);
+        } catch (initError) {
+          print('E2EE: Initialization failed: $initError');
+          throw Exception('Failed to establish secure session with $peerId: $initError');
+        }
+      }
+      rethrow;
     }
-    final keyBytes = await _cipher.newSecretKey();
-    final raw = await keyBytes.extractBytes();
-    await prefs.setString('$_keyPrefix$chatId', base64Encode(raw));
-    return SecretKey(raw);
   }
 
-  /// Encrypt JSON payload to base64 string.
-  /// Format: base64(nonce(12) || mac(16) || ciphertext)
-  static Future<String> encryptJsonForChat(String chatId, Map<String, dynamic> payload) async {
-    final key = await _getOrCreateChatKey(chatId);
-    final nonce = _cipher.newNonce();
-    final plaintext = utf8.encode(jsonEncode(payload));
-    final box = await _cipher.encrypt(
-      plaintext,
-      secretKey: key,
-      nonce: nonce,
-    );
-    final out = BytesBuilder()
-      ..add(box.nonce)
-      ..add(box.mac.bytes)
-      ..add(box.cipherText);
-    return base64Encode(out.toBytes());
+  static Future<Map<String, dynamic>> decryptJson({
+    required String chatId, 
+    required String senderId, 
+    required String encryptedPayloadBase64,
+    required bool isGroup,
+  }) async {
+    if (isGroup) {
+       return decryptJsonForGroup(chatId, senderId, encryptedPayloadBase64);
+    } else {
+       final signal = SignalService().crypto;
+       try {
+         // For 1-to-1, senderId is the peer ID
+         if (signal is RealSignalCrypto) {
+            final plaintext = await signal.decryptForPeer(encryptedPayloadBase64, senderId);
+            return jsonDecode(plaintext) as Map<String, dynamic>;
+         } else {
+            final plaintext = signal.decryptFromBase64(encryptedPayloadBase64);
+            return jsonDecode(plaintext) as Map<String, dynamic>;
+         }
+       } catch (e) {
+         print('Decryption failed for $chatId from $senderId: $e');
+         rethrow;
+       }
+    }
   }
 
-  /// Decrypt base64 string produced by encryptJsonForChat.
-  static Future<Map<String, dynamic>> decryptJsonForChat(String chatId, String encryptedPayloadBase64) async {
-    final key = await _getOrCreateChatKey(chatId);
-    final raw = base64Decode(encryptedPayloadBase64);
-    if (raw.length < 12 + 16) {
-      throw FormatException('encrypted payload too short');
+  static Future<List<DistributionMessage>> distributeKeyToParticipants(String groupId, List<String> participantIds) async {
+    final myUserId = UserService.getUserId();
+    if (myUserId == null) throw Exception('User not logged in');
+    
+    final senderKeyCrypto = SignalService().senderKeyCrypto;
+    
+    SenderKeyDistributionMessage distMsg;
+    
+    if (senderKeyCrypto.hasSession(groupId, myUserId)) {
+      distMsg = senderKeyCrypto.getDistributionMessage(groupId, myUserId);
+    } else {
+      distMsg = await senderKeyCrypto.createSession(groupId, myUserId);
     }
-    final nonce = raw.sublist(0, 12);
-    final macBytes = raw.sublist(12, 28);
-    final cipherText = raw.sublist(28);
-    final box = SecretBox(
-      cipherText,
-      nonce: nonce,
-      mac: Mac(macBytes),
-    );
-    final clear = await _cipher.decrypt(box, secretKey: key);
-    return jsonDecode(utf8.decode(clear)) as Map<String, dynamic>;
+    
+    final result = <DistributionMessage>[];
+    
+    for (final pid in participantIds) {
+      if (pid == myUserId) continue;
+      
+      final payload = {
+        't': 'sender_key_dist',
+        'content': distMsg.toJson(),
+      };
+      
+      try {
+        final encrypted = await encryptJsonForOneToOne(pid, payload);
+        result.add(DistributionMessage(pid, encrypted));
+      } catch (e) {
+        print('Failed to encrypt distribution message for $pid: $e');
+      }
+    }
+    
+    return result;
+  }
+
+  /// Ensure we have a Sender Key session for this group.
+  /// Returns a list of distribution messages that MUST be sent to participants before sending the group message.
+  static Future<List<DistributionMessage>> ensureGroupSession(String groupId, List<String> participantIds) async {
+    final myUserId = UserService.getUserId();
+    if (myUserId == null) throw Exception('User not logged in');
+    
+    final senderKeyCrypto = SignalService().senderKeyCrypto;
+    
+    if (senderKeyCrypto.hasSession(groupId, myUserId)) {
+      return [];
+    }
+    
+    // Create session
+    final distMsg = await senderKeyCrypto.createSession(groupId, myUserId);
+    
+    final result = <DistributionMessage>[];
+    
+    for (final pid in participantIds) {
+      if (pid == myUserId) continue;
+      
+      // Encrypt distMsg for pid using 1-to-1 session
+      final payload = {
+        't': 'sender_key_dist',
+        'content': distMsg.toJson(),
+      };
+      
+      try {
+        final encrypted = await encryptJsonForOneToOne(pid, payload);
+        result.add(DistributionMessage(pid, encrypted));
+      } catch (e) {
+        print('Failed to encrypt distribution message for $pid: $e');
+        // Continue for other participants? Or fail?
+        // If we fail to distribute to one, that user won't be able to decrypt.
+        // We should probably continue but log it.
+      }
+    }
+    
+    return result;
+  }
+  
+  static Future<String> encryptJsonForGroup(String groupId, Map<String, dynamic> payload) async {
+    final myUserId = UserService.getUserId();
+    if (myUserId == null) throw Exception('User not logged in');
+    
+    final senderKeyCrypto = SignalService().senderKeyCrypto;
+    final plaintext = jsonEncode(payload);
+    
+    return await senderKeyCrypto.encryptForGroup(groupId, myUserId, plaintext);
+  }
+  
+  static Future<Map<String, dynamic>> decryptJsonForGroup(String groupId, String senderId, String encryptedBase64) async {
+     final senderKeyCrypto = SignalService().senderKeyCrypto;
+     final plaintext = await senderKeyCrypto.decryptForGroup(groupId, senderId, encryptedBase64);
+     return jsonDecode(plaintext) as Map<String, dynamic>;
   }
 }
 

@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:mimu/shared/app_styles.dart';
 import 'package:mimu/shared/glass_widgets.dart';
 import 'package:mimu/shared/animated_widgets.dart';
 import 'package:mimu/app/theme.dart';
@@ -357,7 +357,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showMoreOptions(BuildContext context) {
     showCupertinoModalPopup(
       context: context,
-      filter: ImageFilter.blur(sigmaX: 0.5, sigmaY: 0.5),
       builder: (context) => buildCupertinoActionSheet(
         context: context,
         actions: [
@@ -396,56 +395,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showCupertinoDialog(
       context: context,
       barrierDismissible: true,
-      builder: (context) => ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
-          child: GlassContainer(
-            padding: const EdgeInsets.all(24),
-            decoration: Theme.of(context).extension<GlassTheme>()!.baseGlass.copyWith(
-              color: Theme.of(context).primaryColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    const Text('Медиа', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(CupertinoIcons.xmark),
-                      onPressed: () => Navigator.of(context).pop(),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: GlassContainer(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'Медиа',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: AppStyles.fontFamily,
+                      letterSpacing: AppStyles.letterSpacingSignature,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 300,
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemCount: _mediaFiles.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () => Navigator.of(context).pop(),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(_mediaFiles[index], fit: BoxFit.cover),
-                        )
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 300,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: _mediaFiles.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => Navigator.of(context).pop(),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(_mediaFiles[index], fit: BoxFit.cover),
+                      )
                           .animate()
                           .fadeIn(duration: Duration(milliseconds: 300 + (index * 50)))
-                          .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.0, 1.0), duration: const Duration(milliseconds: 300)),
-                      );
-                    },
-                  ),
+                          .scale(
+                              begin: const Offset(0.9, 0.9),
+                              end: const Offset(1.0, 1.0),
+                              duration: const Duration(milliseconds: 300)),
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

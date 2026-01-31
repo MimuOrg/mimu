@@ -16,6 +16,7 @@ class ApiService {
   Future<Map<String, String>> _getHeaders({Map<String, String>? additional}) async {
     await UserService.init();
     final prId = UserService.getPrId();
+    final authHeader = UserService.getAuthorizationHeader();
     
     final headers = <String, String>{
       'Content-Type': 'application/json',
@@ -25,6 +26,9 @@ class ApiService {
       'X-Client-Version': '1.0.0',
       'X-Platform': Platform.isAndroid ? 'android' : Platform.isIOS ? 'ios' : 'other',
     };
+    if (authHeader != null && authHeader.isNotEmpty) {
+      headers['Authorization'] = authHeader;
+    }
     
     if (additional != null) {
       headers.addAll(additional);

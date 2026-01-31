@@ -10,6 +10,8 @@ import 'package:mimu/features/premium_screen.dart';
 import 'package:mimu/features/join_by_link_screen.dart';
 import 'package:mimu/features/devices_screen.dart';
 import 'package:mimu/features/blocked_users_screen.dart';
+import 'package:mimu/features/backup_settings_screen.dart';
+import 'package:mimu/features/search_screen.dart';
 
 class AppRoutes {
   // Auth routes
@@ -36,6 +38,8 @@ class AppRoutes {
   static const String devices = '/devices';
   /// Заблокированные пользователи
   static const String blockedUsers = '/blocked';
+  static const String backup = '/backup';
+  static const String search = '/search';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -149,6 +153,16 @@ class AppRoutes {
       case blockedUsers:
         return CupertinoPageRoute(
           builder: (context) => const BlockedUsersScreen(),
+        );
+
+      case backup:
+        return CupertinoPageRoute(
+          builder: (context) => const BackupSettingsScreen(),
+        );
+
+      case search:
+        return CupertinoPageRoute(
+          builder: (context) => const SearchScreen(),
         );
 
       // Default fallback to auth

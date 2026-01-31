@@ -8,6 +8,10 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 /// Real WS client for Mimu backend.
 /// IMPORTANT: payloads for calls must be E2EE-encrypted on device (Signal Protocol) BEFORE sending.
 class WebSocketService {
+  static final WebSocketService _instance = WebSocketService._internal();
+  factory WebSocketService() => _instance;
+  WebSocketService._internal();
+
   WebSocketChannel? _channel;
   StreamSubscription? _sub;
   Timer? _heartbeatTimer;
@@ -28,10 +32,12 @@ class WebSocketService {
     final base = ServerConfig.getApiBaseUrl()
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
-    final uri = Uri.parse('$base/ws');
+    final baseUri = Uri.parse('$base/ws');
+    final uri = baseUri.replace(queryParameters: {
+      ...baseUri.queryParameters,
+      'token': token,
+    });
 
-    // Note: WebSocketChannel.connect does not support custom headers.
-    // If the backend requires auth, use token in URI query (e.g. ?token=) or first message.
     _channel = WebSocketChannel.connect(uri);
 
     _sub = _channel!.stream.listen((msg) {
